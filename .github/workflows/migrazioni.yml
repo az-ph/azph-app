@@ -2,6 +2,7 @@ name: Migrazioni database
 
 # Applica le migrazioni di supabase/migrations al progetto Supabase
 # quando cambiano su main. Le chiavi stanno nei segreti di GitHub.
+# La CLI legge la password del database da SUPABASE_DB_PASSWORD.
 on:
   push:
     branches: [main]
@@ -22,13 +23,13 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: supabase/setup-cli@v1
         with:
           version: latest
       - name: Collega il progetto
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
       - name: Mostra le migrazioni da applicare
-        run: supabase migration list --password "$SUPABASE_DB_PASSWORD"
+        run: supabase migration list --linked
       - name: Applica le migrazioni
-        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
+        run: supabase db push --linked
