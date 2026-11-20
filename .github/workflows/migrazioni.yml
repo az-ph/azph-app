@@ -30,6 +30,6 @@ jobs:
       - name: Collega il progetto
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
       - name: Mostra le migrazioni da applicare
-        run: supabase migration list --linked
+        run: supabase migration list --remote
       - name: Applica le migrazioni
-        run: supabase db push --linked
+        run: supabase db push --remote --yes
