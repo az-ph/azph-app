@@ -138,6 +138,17 @@ describe("lettura del foglio Matrimoni", () => {
     expect(resoconto.avvisi).toContain("2027-002: MB spuntato ma la memory box non è nel pacchetto, spunta non importata");
   });
 
+  it("ogni matrimonio ha il suo link Sposi casuale", () => {
+    const tokens = dati.matrimoni.map((x) => x.token as string);
+    expect(tokens.every((t) => /^[0-9A-Za-z]{22}$/.test(t))).toBe(true);
+    expect(new Set(tokens).size).toBe(tokens.length);
+  });
+
+  it("pacchetti video assegnati al videomaker", () => {
+    expect(dati.listino.find((v) => v.codice === "video")).toMatchObject({ collaboratore: "MBA" });
+    expect(dati.listino.find((v) => v.codice === "box")).toMatchObject({ collaboratore: null });
+  });
+
   it("pagina congiunta dal suffisso -VdM", () => {
     expect(m("2027-003")).toMatchObject({ pagina_congiunta: true, fonte: "VDM" });
   });

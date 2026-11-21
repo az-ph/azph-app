@@ -2,6 +2,7 @@
 
 import { leggiWorkbook, type Resoconto } from "@/lib/importa/foglio";
 import { statoAccesso, supabaseSessione } from "@/lib/supabase/sessione";
+import { ISTANZA_AZPH } from "../../../../istanze/azph";
 
 export type EsitoImport = {
   errore?: string;
@@ -33,5 +34,8 @@ export async function importa(_prec: EsitoImport, form: FormData): Promise<Esito
   const supabase = await supabaseSessione();
   const { data, error } = await supabase.rpc("importa_foglio", { dati: letto.dati });
   if (error) return { errore: "Importazione annullata, nessun dato scritto: " + error.message, resoconto: letto.resoconto };
+  // Impostazioni, testi della pagina e contratto di AZ-ph (solo se mancano).
+  const ist = await supabase.rpc("importa_istanza", { dati: ISTANZA_AZPH });
+  if (ist.error) return { errore: "Dati importati, ma impostazioni e testi no: " + ist.error.message, resoconto: letto.resoconto };
   return { resoconto: letto.resoconto, importato: data as Record<string, number> };
 }
