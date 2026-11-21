@@ -1,17 +1,14 @@
 /** Formati dell'interfaccia: euro da centesimi, date gg.mm.aaaa, date estese. */
 
-const EURO = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", minimumFractionDigits: 2 });
-
+/** "1.100,00 €": il punto delle migliaia anche sotto 10.000 (Intl in italiano non lo mette). */
 export function euro(centesimi: number): string {
-  return EURO.format(centesimi / 100);
+  const [i, d] = (Math.abs(centesimi) / 100).toFixed(2).split(".");
+  return (centesimi < 0 ? "-" : "") + i.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + d + " €";
 }
 
 /** Senza decimali se tondo: 1.100 € / 1.287,57 €. */
 export function euroBreve(centesimi: number): string {
-  return new Intl.NumberFormat("it-IT", {
-    style: "currency", currency: "EUR",
-    minimumFractionDigits: centesimi % 100 ? 2 : 0, maximumFractionDigits: 2,
-  }).format(centesimi / 100);
+  return centesimi % 100 ? euro(centesimi) : euro(centesimi).replace(",00 €", " €");
 }
 
 export function data(iso: string | null | undefined): string {

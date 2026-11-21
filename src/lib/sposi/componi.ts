@@ -17,7 +17,7 @@ export interface RigheGrezze {
   sposi: { ordine: number; nome: string | null; telefono: string | null; email: string | null; codice_fiscale: string | null;
     indirizzo: string | null; indirizzo_preparativi: string | null; consenso_promo: boolean }[];
   preventivo: { id: string; versione: number; opzioni: unknown; prezzi_speciali: unknown; preselezione: string[];
-    scelte: string[]; confermato_il: string | null } | null;
+    scelte: string[]; inviato_il?: string | null; confermato_il: string | null } | null;
   listino: { codice: string; categoria: string; voce: string; descrizione: string | null; prezzo: number;
     prezzo_barrato: number | null; gruppo: string | null; collegata_a: string | null; solo_se: string | null;
     riepilogo: string | null; collaboratore: string | null; attiva: boolean }[];
@@ -31,14 +31,15 @@ export interface RigheGrezze {
 
 export interface Blocco {
   chiave: string; sopratitolo?: string; titolo?: string; corpo?: string; banda?: boolean; gallerie?: boolean;
-  passi?: [string, string][]; inclusi?: string[];
+  passi?: [string, string][]; inclusi?: string[]; dati?: [string, string][]; lista?: string[];
+  link?: [string, string][]; nota?: string;
 }
 
 export interface Galleria { titolo: string; url: string }
 
 // Solo queste voci del marchio arrivano al browser (niente indirizzi di notifica o altro di interno).
-const MARCHIO_PUBBLICO = ["nome", "titolare", "firma", "logo_url", "copertina_url", "badges", "real_wedding_url", "email",
-  "sito", "instagram", "indirizzo", "codice_fiscale", "partita_iva", "iban", "intestatario"] as const;
+const MARCHIO_PUBBLICO = ["nome", "titolare", "firma", "motto", "logo_url", "copertina_url", "badges", "real_wedding_url", "email",
+  "telefono", "sito", "instagram", "indirizzo", "localita", "codice_fiscale", "partita_iva", "iban", "intestatario"] as const;
 export type Marchio = Partial<Record<(typeof MARCHIO_PUBBLICO)[number], string | string[]>>;
 
 export function modoDaStato(stato: string): Modo {
@@ -70,7 +71,7 @@ export function componiPagina(r: RigheGrezze) {
 
   const blocchi: Blocco[] = r.blocchi
     .filter((b) => b.quando === "sempre"
-      || (modo === "preventivo" && (congiunta ? b.quando === "preventivo_duo" || (b.quando === "preventivo" && !["mi-presento", "reportage", "come-lavoro", "servizio"].includes(b.chiave)) : b.quando === "preventivo"))
+      || (modo === "preventivo" && (congiunta ? b.quando === "preventivo_duo" || (b.quando === "preventivo" && !["mi-presento", "reportage", "come-lavoro", "servizio", "video"].includes(b.chiave)) : b.quando === "preventivo"))
       || ((modo === "sposi" || modo === "chiuso") && b.quando === "sposi"))
     .map((b) => ({ chiave: b.chiave, ...(b.dati as object) }));
 
@@ -100,6 +101,7 @@ export function componiPagina(r: RigheGrezze) {
     preventivo: r.preventivo ? {
       id: r.preventivo.id, versione: r.preventivo.versione, preselezione: r.preventivo.preselezione,
       scelte: r.preventivo.scelte, confermato: !!r.preventivo.confermato_il,
+      inviato: r.preventivo.inviato_il ?? null,
     } : null,
     timeline: r.timeline.filter((t) => !t.nota_privata && t.fase)
       .map((t) => ({ giorno: t.giorno, ora: t.ora ? t.ora.slice(0, 5) : null, fase: t.fase as string, luogo: t.luogo })),

@@ -1,4 +1,5 @@
 import { FormImporta } from "./form";
+import { AggiornaTesti } from "./aggiorna-testi";
 
 export default function PaginaImporta() {
   return (
@@ -10,6 +11,7 @@ export default function PaginaImporta() {
         <li>Se i numeri tornano, ricarica lo stesso file e premi <b>Importa</b>. Si può fare una sola volta, a database vuoto.</li>
       </ol>
       <FormImporta />
+      <AggiornaTesti />
     </section>
   );
 }
