@@ -297,7 +297,7 @@
 #azp .firma-riga{max-width:62rem;margin:0 auto}
 #azp .nomi,#azp .data,#azp h2,#azp .motto{text-wrap:balance}
 #azp p,#azp li,#azp .scelta span,#azp dd{text-wrap:pretty}
-#azp .scelta{align-items:baseline;max-width:44rem}
+#azp .scelta{align-items:baseline;max-width:none}
 #azp .scelta input{flex:none;margin:0;transform:translateY(.15em)}
 #azp section p,#azp li,#azp dd{hyphens:manual;-webkit-hyphens:manual}
 @media (max-width:40rem){#azp section p{text-align:left}}
