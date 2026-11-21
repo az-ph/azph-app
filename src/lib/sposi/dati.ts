@@ -32,7 +32,7 @@ export async function caricaPagina(mid: string): Promise<{
     ).eq("id", mid).single(),
     db.from("sposo").select("ordine, nome, telefono, email, codice_fiscale, indirizzo, indirizzo_preparativi, consenso_promo")
       .eq("matrimonio_id", mid).order("ordine"),
-    db.from("preventivo").select("id, versione, opzioni, prezzi_speciali, preselezione, scelte, confermato_il")
+    db.from("preventivo").select("id, versione, opzioni, prezzi_speciali, preselezione, scelte, inviato_il, confermato_il")
       .eq("matrimonio_id", mid).order("versione", { ascending: false }).limit(1).maybeSingle(),
     db.from("voce_listino").select("codice, categoria, voce, descrizione, prezzo, prezzo_barrato, gruppo, collegata_a, solo_se, riepilogo, collaboratore, attiva")
       .eq("attiva", true).order("ordine"),

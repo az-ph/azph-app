@@ -39,3 +39,12 @@ export async function importa(_prec: EsitoImport, form: FormData): Promise<Esito
   if (ist.error) return { errore: "Dati importati, ma impostazioni e testi no: " + ist.error.message, resoconto: letto.resoconto };
   return { resoconto: letto.resoconto, importato: data as Record<string, number> };
 }
+
+/** Ricarica impostazioni e testi della pagina Sposi da istanze/azph (il contratto non si tocca). */
+export async function aggiornaTesti(): Promise<{ ok?: true; errore?: string }> {
+  const accesso = await statoAccesso();
+  if (accesso.stato !== "admin") return { errore: "Accesso non valido." };
+  const supabase = await supabaseSessione();
+  const { error } = await supabase.rpc("importa_istanza", { dati: ISTANZA_AZPH });
+  return error ? { errore: error.message } : { ok: true };
+}

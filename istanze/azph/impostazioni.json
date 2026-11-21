@@ -16,13 +16,22 @@
     "email_notifiche": "alessandro+preventivi@alessandrozaniboniphoto.com",
     "sito": "https://az-ph.com",
     "instagram": "alessandrozaniboniphoto",
-    "indirizzo": "Via Don Vito Bignotti 3 - 46014 Castellucchio MN",
+    "indirizzo": "Via Don Vito Bignotti 3\n46014 Castellucchio MN",
     "codice_fiscale": "ZNBLSN79B22D150K",
     "partita_iva": "IT02595690203",
     "iban": "IT53C0834057560000002173259",
-    "intestatario": "Alessandro Zaniboni"
+    "intestatario": "Alessandro Zaniboni",
+    "motto": "Un reportage con l’anima\nper il vostro Wedding Day",
+    "telefono": "+39 348 0061131",
+    "localita": "Castellucchio MN"
   },
-  "zone": ["Mantova", "Brescia", "Verona", "Padova", "Ovunque in Italia"],
+  "zone": [
+    "Mantova",
+    "Brescia",
+    "Verona",
+    "Padova",
+    "Ovunque in Italia"
+  ],
   "url_recensioni": "https://www.matrimonio.com/fotografo-matrimonio/alessandro-zaniboni--e170111/opinioni",
   "condizioni_pagamento": "Nessuna caparra alla conferma. Acconto del 50% dei servizi (album escluso) al kick-off meeting, saldo alla consegna delle foto. L'album e gli album genitori si pagano alla consegna dell'album."
 }

@@ -2,38 +2,46 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { selezione, importiConferma, type Offerta, type VoceOfferta, ErroreSelezione } from "@/lib/listino/motore";
-import { euro, euroBreve } from "@/lib/formato";
 import { conferma, traccia } from "./azioni";
-import { Contratto } from "./testo";
+import { Contratto, Euro, Evidenzia, Paragrafi, euroTesto } from "./testo";
 import type { Blocco } from "@/lib/sposi/componi";
 
-type SposoForm = { nome: string; telefono: string; email: string; codice_fiscale: string; indirizzo: string; indirizzo_preparativi: string };
+type SposoDati = { nome: string; telefono: string; email: string; codice_fiscale: string; indirizzo: string; indirizzo_preparativi: string };
+type Indirizzo = { via: string; cap: string; loc: string; prov: string };
+
+const PROVINCE = "AG AL AN AO AP AQ AR AT AV BA BG BI BL BN BO BR BS BT BZ CA CB CE CH CL CN CO CR CS CT CZ EN FC FE FG FI FM FR GE GO GR IM IS KR LC LE LI LO LT LU MB MC ME MI MN MO MS MT NA NO NU OR PA PC PD PE PG PI PN PO PR PT PU PV PZ RA RC RE RG RI RM RN RO SA SI SO SP SR SS SU SV TA TE TN TO TP TR TS TV UD VA VB VC VE VI VR VT VV".split(" ");
+
+/** "Via Roma 1 - 46100 Mantova MN" ⇄ quattro caselle, come nella pagina attuale. */
+function divididIndirizzo(s: string): Indirizzo {
+  const m = s.match(/^(.*) - (\d{5}) (.*) ([A-Z]{2})$/);
+  return m ? { via: m[1], cap: m[2], loc: m[3], prov: m[4] } : { via: s, cap: "", loc: "", prov: "" };
+}
+function unisciIndirizzo(i: Indirizzo): string {
+  if (!i.via.trim() && !i.cap.trim() && !i.loc.trim()) return "";
+  return `${i.via.trim()} - ${i.cap.trim()} ${i.loc.trim()} ${i.prov}`.trim();
+}
 
 export function Preventivo(props: {
   token: string;
   offerta: Offerta;
   servizioSenzaVideo: number | null;
   preselezione: string[];
-  sposi: (SposoForm & { ordine: number; consenso_promo: boolean })[];
-  titoli: { opzionali?: Blocco; album?: Blocco };
+  sposi: (SposoDati & { ordine: number; consenso_promo: boolean })[];
+  blocchi: { opzionali?: Blocco; album?: Blocco; video?: Blocco };
   contratto: string;
   videomaker: string | null;
 }) {
   const { offerta, token } = props;
   const duo = !!offerta.duo;
   const voci = offerta.voci;
-  const opzionali = voci.filter((v) => v.categoria === "extra" || v.categoria === "prewedding");
-  const omaggi = voci.filter((v) => v.categoria === "omaggio");
-  const album = voci.filter((v) => v.categoria === "album");
-  const repliche = voci.filter((v) => v.categoria === "replica");
   const basiVideo = voci.filter((v) => v.categoria === "video-base");
   const extraVideo = voci.filter((v) => v.categoria === "video");
 
   const [scelti, setScelti] = useState<Set<string>>(() => new Set(props.preselezione.filter((c) => voci.some((v) => v.codice === c))));
   const [qta, setQta] = useState<Record<string, number>>({});
   const [video, setVideo] = useState<string | null>(duo ? (basiVideo[0]?.codice ?? null) : null);
+  const [confermato, setConfermato] = useState(false);
 
-  const conVideo = !duo || !!video;
   const servizio = duo && !video && props.servizioSenzaVideo !== null ? props.servizioSenzaVideo : offerta.servizio.prezzo;
 
   const calcolo = useMemo(() => {
@@ -47,7 +55,7 @@ export function Preventivo(props: {
   }, [voci, scelti, qta, video, offerta, servizio]);
 
   function cambia(v: VoceOfferta) {
-    if (v.incluso) return;
+    if (v.incluso || v.categoria === "omaggio" || confermato) return;
     setScelti((prec) => {
       const n = new Set(prec);
       const attiva = !n.has(v.codice);
@@ -57,193 +65,306 @@ export function Preventivo(props: {
           if (altra.codice !== v.codice && ((v.gruppo && altra.gruppo === v.gruppo) || (v.categoria === "album" && altra.categoria === "album"))) n.delete(altra.codice);
         }
         n.add(v.codice);
-      } else n.delete(v.codice);
+      } else {
+        n.delete(v.codice);
+        if (v.categoria === "album") setQta((q) => Object.fromEntries(Object.entries(q).filter(([k]) => voci.find((r) => r.codice === k)?.collegataA !== v.codice)));
+      }
       void traccia(token, v.codice, attiva);
       return n;
     });
   }
 
+  const card = (v: VoceOfferta, disabilitata = false) => (
+    <Card key={v.codice} v={v} attiva={scelti.has(v.codice)} disabilitata={disabilitata || confermato} onClick={() => cambia(v)} />
+  );
+
+  // Opzionali: omaggi, extra e prematrimoniale; le voci dello stesso gruppo in un riquadro unico.
+  const opzionali = voci.filter((v) => ["omaggio", "extra", "prewedding"].includes(v.categoria) && !(duo && v.condiviso));
+  const blocchiOpz: React.ReactNode[] = [];
+  for (let i = 0; i < opzionali.length;) {
+    const g = opzionali[i].gruppo;
+    if (!g) { blocchiOpz.push(card(opzionali[i])); i++; continue; }
+    const membri: VoceOfferta[] = [];
+    while (i < opzionali.length && opzionali[i].gruppo === g) membri.push(opzionali[i++]);
+    blocchiOpz.push(
+      <div key={"g-" + g} className="gruppo">
+        <p className="gruppo-tit">{g}</p>
+        <p className="gruppo-sub">Scegliete una delle opzioni, oppure nessuna.</p>
+        <div className="opzioni due" style={{ margin: 0 }}>{membri.map((v) => card(v))}</div>
+      </div>,
+    );
+  }
+
+  const bO = props.blocchi.opzionali, bA = props.blocchi.album, bV = props.blocchi.video;
+  const album = voci.filter((v) => v.categoria === "album");
+  const repliche = voci.filter((v) => v.categoria === "replica");
+
   return (
     <>
-      <section className="px-6 py-10 bg-salvia text-white">
-        <div className="max-w-3xl mx-auto flex items-end justify-between gap-6">
-          <div>
-            <p className="uppercase tracking-[0.2em] text-xs opacity-80">{duo ? "Pacchetto foto + video" : offerta.formula ? "Servizio fotografico" : ""}</p>
-            <p className="font-serif text-4xl">{euroBreve(servizio)}</p>
-            {offerta.servizio.barrato > 0 && (!duo || video) && <p className="line-through opacity-70">{euroBreve(offerta.servizio.barrato)}</p>}
+      <section id="azp-opzionali">
+        <div className="wrap">
+          <p className="sez">{bO?.sopratitolo ?? "Opzionale"}</p>
+          <h2>{bO?.titolo ?? "Rendetelo vostro"}</h2>
+          <Paragrafi testo={bO?.corpo} />
+          <div className="duo-opz">
+            <div>
+              {duo && <p className="gruppo-tit">Per le foto</p>}
+              <div className="opzioni">{blocchiOpz}</div>
+            </div>
+            {duo && extraVideo.length > 0 && (
+              <div>
+                <p className="gruppo-tit">Per il video</p>
+                <div className="opzioni">{extraVideo.map((v) => card(v, !video))}</div>
+              </div>
+            )}
           </div>
-          {omaggi.length > 0 && (
-            <ul className="text-sm text-right">{omaggi.map((o) => <li key={o.codice}>{o.voce} · <b>omaggio</b></li>)}</ul>
+          {duo && voci.some((v) => v.condiviso) && (
+            <div className="duo-condivisi">
+              <p className="gruppo-tit">Foto e video insieme</p>
+              <div className="opzioni">{voci.filter((v) => v.condiviso).map((v) => card(v))}</div>
+            </div>
+          )}
+          {duo && basiVideo.length > 0 && (
+            <div className="duo-condivisi">
+              <p className="gruppo-tit">Il video</p>
+              <div className="opzioni">
+                {basiVideo.map((b) => (
+                  <Card key={b.codice} v={b} attiva={video === b.codice} disabilitata={confermato}
+                    onClick={() => { const n = video === b.codice ? null : b.codice; setVideo(n); void traccia(token, b.codice, !!n); }} />
+                ))}
+              </div>
+              {!video && <p className="omaggio-nota">Senza video il servizio fotografico torna a prezzo pieno.</p>}
+            </div>
           )}
         </div>
       </section>
 
-      {opzionali.length > 0 && (
-        <Blocchetto b={props.titoli.opzionali} titolo="Rendetelo vostro">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {opzionali.map((v) => <Scheda key={v.codice} v={v} attiva={scelti.has(v.codice) || v.incluso} onClick={() => cambia(v)} />)}
-          </div>
-        </Blocchetto>
-      )}
-
       {album.length > 0 && (
-        <Blocchetto b={props.titoli.album} titolo="Wedding album" banda>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {album.map((v) => <Scheda key={v.codice} v={v} attiva={scelti.has(v.codice)} onClick={() => cambia(v)} />)}
-          </div>
-          {repliche.filter((r) => scelti.has(r.collegataA ?? "")).map((r) => (
-            <label key={r.codice} className="flex items-center gap-3 mt-4">
-              <span>{r.voce} ({euroBreve(r.prezzo)} cad.)</span>
-              <input type="number" min={0} max={10} value={qta[r.codice] ?? 0} className="w-16 border rounded px-2 py-1"
-                onChange={(e) => setQta({ ...qta, [r.codice]: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })} />
-            </label>
-          ))}
-        </Blocchetto>
-      )}
-
-      {basiVideo.length > 0 && (
-        <Blocchetto titolo={duo ? "Il video" : "Video"} sopratitolo={props.videomaker ? `con ${props.videomaker}` : "Opzionale"}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {basiVideo.map((v) => (
-              <Scheda key={v.codice} v={v} attiva={video === v.codice}
-                onClick={() => { const nuovo = video === v.codice ? null : v.codice; setVideo(nuovo); void traccia(token, v.codice, !!nuovo); }} />
-            ))}
-          </div>
-          {video && extraVideo.length > 0 && (
-            <div className="grid gap-3 sm:grid-cols-2 mt-3">
-              {extraVideo.map((v) => <Scheda key={v.codice} v={v} attiva={scelti.has(v.codice)} onClick={() => cambia(v)} />)}
+        <section className="banda" id="azp-album">
+          <div className="wrap">
+            <p className="sez">{bA?.sopratitolo ?? "Opzionale"}</p>
+            <h2>{bA?.titolo ?? "Wedding album"}</h2>
+            <Paragrafi testo={bA?.corpo} />
+            <div className="opzioni due">
+              {album.map((v) => card(v))}
+              {repliche.map((r) => {
+                const attiva = scelti.has(r.collegataA ?? "");
+                const q = attiva ? (qta[r.codice] ?? 0) : 0;
+                const cambiaQta = (d: number) => setQta({ ...qta, [r.codice]: Math.max(0, Math.min(10, q + d)) });
+                return (
+                  <div key={r.codice} className={`opz${q && attiva ? " on" : ""}`} style={{ cursor: "default" }}>
+                    <span className="voce">{r.voce}</span>
+                    <span className="euro"><PrezzoCard v={r} suffisso={<small> cad.</small>} /></span>
+                    {r.descrizione && <span className="desc">{r.descrizione}</span>}
+                    <div className="qta">
+                      <button type="button" disabled={!attiva || !q || confermato} onClick={() => cambiaQta(-1)} aria-label="Una copia in meno">−</button>
+                      <output>{q}</output>
+                      <button type="button" disabled={!attiva || q >= 10 || confermato} onClick={() => cambiaQta(1)} aria-label="Una copia in più">+</button>
+                      <span className="stato">{attiva ? "" : "Disponibile scegliendo l’album"}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          )}
-          {duo && !video && <p className="mt-3 text-sm">Senza video il servizio fotografico torna a prezzo pieno.</p>}
-          <p className="mt-3 text-xs opacity-70">Contratto e pagamenti del video sono direttamente con il videomaker.</p>
-        </Blocchetto>
+            {bA?.lista && <ul className="lista-verde">{bA.lista.map((x, i) => <li key={i}><Evidenzia testo={x} /></li>)}</ul>}
+          </div>
+        </section>
       )}
 
-      <FormConferma {...props} calcolo={calcolo} servizio={servizio} video={video} scelti={scelti} qta={qta} conVideo={conVideo} />
+      {!duo && basiVideo.length > 0 && (
+        <section id="azp-video">
+          <div className="wrap">
+            <p className="sez">{bV?.sopratitolo ?? "Opzionale"}</p>
+            <h2>{bV?.titolo ?? "Video maker"}</h2>
+            <Paragrafi testo={bV?.corpo} />
+            {bV?.link && (
+              <div className="gallerie" style={{ marginTop: "1rem" }}>
+                {bV.link.map(([t, u]) => <a key={u} className="btn-scuro" style={{ margin: 0 }} href={u} target="_blank" rel="noopener noreferrer">{t}</a>)}
+              </div>
+            )}
+            <div className={`opzioni${basiVideo.length > 1 ? " due" : ""}`}>
+              {basiVideo.map((b) => (
+                <Card key={b.codice} v={b} attiva={video === b.codice} disabilitata={confermato}
+                  onClick={() => { const n = video === b.codice ? null : b.codice; setVideo(n); void traccia(token, b.codice, !!n); }} />
+              ))}
+            </div>
+            {basiVideo.length > 1 && bV?.nota && <p className="gruppo-sub" style={{ marginTop: ".75rem" }}>{bV.nota}</p>}
+            {extraVideo.length > 0 && (
+              <>
+                <p style={{ marginTop: "2rem" }}>Con il video potete aggiungere:</p>
+                <div className="opzioni due">{extraVideo.map((v) => card(v, !video))}</div>
+              </>
+            )}
+          </div>
+        </section>
+      )}
 
-      <div className="sticky bottom-0 bg-antracite text-white px-6 py-3">
-        <div className="max-w-3xl mx-auto flex justify-between items-center">
-          <span>Totale servizi fotografici <b className="font-serif text-xl ml-2">{calcolo.imp ? euro(calcolo.imp.totaleFoto) : "—"}</b>
-            {calcolo.imp && calcolo.imp.totaleVideo > 0 && <span className="text-sm opacity-80"> + video {euro(calcolo.imp.totaleVideo)}</span>}</span>
-          <a href="#conferma" className="underline">Conferma</a>
+      <FormConferma {...props} calcolo={calcolo} servizio={servizio} video={video} scelti={scelti} qta={qta}
+        conVideo={!duo || !!video} onConfermato={() => setConfermato(true)} confermato={confermato} />
+
+      {!confermato && (
+        <div className="barra">
+          <div className="wrap">
+            <div><span className="lbl">Totale selezionato</span>
+              <span className="tot">{calcolo.imp ? <Euro centesimi={calcolo.imp.totaleFoto + calcolo.imp.totaleVideo} /> : "—"}</span></div>
+            <a href="#azp-conferma">Conferma</a>
+          </div>
         </div>
-      </div>
+      )}
     </>
+  );
+}
+
+function PrezzoCard({ v, suffisso }: { v: VoceOfferta; suffisso?: React.ReactNode }) {
+  const barrato = v.barrato ? <span className="barrato">{euroTesto(v.barrato)}</span> : null;
+  if (v.prezzo === 0) return <>{barrato}Omaggio</>;
+  return <>{barrato}+ <Euro centesimi={v.prezzo} />{suffisso}</>;
+}
+
+function Card({ v, attiva, disabilitata, onClick }: { v: VoceOfferta; attiva: boolean; disabilitata?: boolean; onClick: () => void }) {
+  const fisso = v.categoria === "omaggio" || v.incluso;
+  return (
+    <button type="button" className={`opz${fisso ? " fisso" : ""}`} aria-pressed={fisso ? undefined : attiva}
+      disabled={fisso || disabilitata} onClick={onClick}>
+      <span className="voce">{v.voce}</span>
+      <span className="euro"><PrezzoCard v={v} /></span>
+      {v.descrizione && <span className="desc">{v.descrizione}</span>}
+      <span className="stato">{fisso ? "Incluso ✓" : attiva ? "Aggiunto ✓ - tocca per togliere" : "Tocca per aggiungere"}</span>
+    </button>
   );
 }
 
 function FormConferma(props: Parameters<typeof Preventivo>[0] & {
   calcolo: { sel: ReturnType<typeof selezione> | null; imp: ReturnType<typeof importiConferma> | null; errore: string | null };
   servizio: number; video: string | null; scelti: Set<string>; qta: Record<string, number>; conVideo: boolean;
+  onConfermato: () => void; confermato: boolean;
 }) {
-  const vuoto: SposoForm = { nome: "", telefono: "", email: "", codice_fiscale: "", indirizzo: "", indirizzo_preparativi: "" };
-  const [sposi, setSposi] = useState<SposoForm[]>(() => [0, 1].map((i) => ({ ...vuoto, ...(props.sposi[i] ?? {}) })));
-  const [consenso, setConsenso] = useState(true);
+  const iniziale = (i: number) => {
+    const s = props.sposi[i];
+    return {
+      nome: s?.nome ?? "", telefono: s?.telefono ?? "", email: s?.email ?? "", codice_fiscale: s?.codice_fiscale ?? "",
+      residenza: divididIndirizzo(s?.indirizzo ?? ""), preparativi: divididIndirizzo(s?.indirizzo_preparativi ?? ""),
+    };
+  };
+  const [sposi, setSposi] = useState(() => [iniziale(0), iniziale(1)]);
+  const [consenso, setConsenso] = useState(props.sposi[0]?.consenso_promo ?? true);
   const [note, setNote] = useState("");
   const [accetto, setAccetto] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
-  const [fatto, setFatto] = useState(false);
   const [inCorso, avvia] = useTransition();
 
-  if (fatto) {
-    return (
-      <section id="conferma" className="px-6 py-14 bg-salvia-chiaro text-center">
-        <h2 className="font-serif text-3xl mb-3">Grazie!</h2>
-        <p>La vostra conferma è registrata: la data è vostra. Vi scrivo a breve.</p>
-      </section>
-    );
-  }
-
-  const campo = (i: number, k: keyof SposoForm, etichetta: string, facoltativo = false) => (
-    <label className="block text-sm">
-      <span>{etichetta}{facoltativo && " (facoltativo)"}</span>
-      <input value={sposi[i][k]} onChange={(e) => setSposi(sposi.map((s, j) => (j === i ? { ...s, [k]: e.target.value } : s)))}
-        className="mt-1 w-full border rounded px-3 py-2 bg-white" />
-    </label>
-  );
+  const aggiorna = (i: number, patch: Partial<ReturnType<typeof iniziale>>) =>
+    setSposi(sposi.map((s, j) => (j === i ? { ...s, ...patch } : s)));
 
   function invia() {
     setErrore(null);
     avvia(async () => {
       const r = await conferma(props.token, {
         extra: [...props.scelti], qta: props.qta, video: props.video, conVideo: props.conVideo,
-        sposi, consensoPromo: consenso, note, accetto,
+        sposi: sposi.map((s) => ({
+          nome: s.nome, telefono: s.telefono, email: s.email, codice_fiscale: s.codice_fiscale,
+          indirizzo: unisciIndirizzo(s.residenza), indirizzo_preparativi: unisciIndirizzo(s.preparativi),
+        })),
+        consensoPromo: consenso, note, accetto,
       });
-      if (r.ok) setFatto(true); else setErrore(r.errore ?? "Errore");
+      if (r.ok) props.onConfermato(); else setErrore(r.errore ?? "Errore");
     });
   }
 
-  const righe = props.calcolo.sel ? [...props.calcolo.sel.foto, ...props.calcolo.sel.video] : [];
-  return (
-    <section id="conferma" className="px-6 py-14 bg-salvia-chiaro">
-      <div className="max-w-3xl mx-auto">
-        <h2 className="font-serif text-3xl mb-6">Conferma</h2>
-        <ul className="divide-y mb-8">
-          <li className="flex justify-between py-2"><span>Servizio fotografico</span><span>{euro(props.servizio)}</span></li>
-          {righe.map((x) => <li key={x.codice} className="flex justify-between py-2"><span>{x.etichetta}</span><span>{x.totale ? euro(x.totale) : "omaggio"}</span></li>)}
-        </ul>
-        {props.calcolo.errore && <p className="text-red-700 mb-4">{props.calcolo.errore}</p>}
+  const sel = props.calcolo.sel;
+  const omaggi = props.offerta.voci.filter((v) => v.categoria === "omaggio");
+  const righeFoto: [string, number][] = [
+    ["Servizio fotografico", props.servizio],
+    ...omaggi.map((v) => [v.voce, 0] as [string, number]),
+    ...(sel?.foto ?? []).map((x) => [x.etichetta.replace(/ \(omaggio\)$/, ""), x.totale] as [string, number]),
+  ];
+  const righeVideo: [string, number][] = (sel?.video ?? []).map((x) => [x.etichetta, x.totale]);
+  const tf = righeFoto.reduce((s, r) => s + r[1], 0), tv = righeVideo.reduce((s, r) => s + r[1], 0);
+  const li = (r: [string, number][]) => r.map(([k, v], i) => <li key={k + i}><span>{k}</span><span>{v ? euroTesto(v) : "Omaggio"}</span></li>);
 
-        <div className="grid gap-6 sm:grid-cols-2 mb-6">
-          {[0, 1].map((i) => (
-            <fieldset key={i} className="space-y-2">
-              <legend className="font-medium mb-1">Sposa/o {i + 1}</legend>
-              {campo(i, "nome", "Nome e cognome")}
-              {campo(i, "telefono", "Telefono")}
-              {campo(i, "email", "Email")}
-              {campo(i, "codice_fiscale", "Codice fiscale")}
-              {campo(i, "indirizzo", "Indirizzo di residenza")}
-              {campo(i, "indirizzo_preparativi", "Indirizzo dei preparativi", true)}
-            </fieldset>
-          ))}
+  const campoTesto = (i: number, k: "nome" | "telefono" | "email" | "codice_fiscale", etichetta: string, tipo: string, ac: string) => (
+    <label className="campo"><span>{etichetta}</span>
+      <input type={tipo} autoComplete={i === 0 ? ac : "off"} value={sposi[i][k]} onChange={(e) => aggiorna(i, { [k]: e.target.value })} />
+    </label>
+  );
+  const campoIndirizzo = (i: number, k: "residenza" | "preparativi", etichetta: string, facoltativo: boolean) => {
+    const v = sposi[i][k];
+    const set = (patch: Partial<Indirizzo>) => aggiorna(i, { [k]: { ...v, ...patch } });
+    return (
+      <div className="campo ind"><span>{etichetta}</span>
+        <div className="ind-griglia">
+          <input type="text" placeholder="Via e numero civico" value={v.via} onChange={(e) => set({ via: e.target.value })} />
+          <input type="text" placeholder="CAP" inputMode="numeric" maxLength={5} value={v.cap} onChange={(e) => set({ cap: e.target.value })} />
+          <input type="text" placeholder="Località" value={v.loc} onChange={(e) => set({ loc: e.target.value })} />
+          <select aria-label="Provincia" value={v.prov} onChange={(e) => set({ prov: e.target.value })}>
+            <option value="">Prov.</option>{PROVINCE.map((p) => <option key={p}>{p}</option>)}<option value="EE">Estero</option>
+          </select>
         </div>
+        {facoltativo && <small className="nota-campo">Lasciate vuoto se vi preparate in location</small>}
+      </div>
+    );
+  };
 
-        <label className="flex gap-2 mb-3"><input type="checkbox" checked={consenso} onChange={(e) => setConsenso(e.target.checked)} />
-          <span>Acconsentiamo all’uso di alcune foto per portfolio, sito e social</span></label>
-        <label className="block mb-4 text-sm"><span>Note o richieste (facoltativo)</span>
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} className="mt-1 w-full border rounded px-3 py-2 bg-white" /></label>
+  return (
+    <section className="conferma" id="azp-conferma">
+      <div className="wrap">
+        <h2>Conferma</h2>
+        <ul className="riepilogo">
+          {righeVideo.length ? (
+            <>
+              {li(righeFoto)}
+              <li className="sub"><span>Totale fotografia</span><span>{euroTesto(tf)}</span></li>
+              <li className="intest"><span>Video - contratto e pagamento con {props.videomaker ?? "il videomaker"}</span></li>
+              {li(righeVideo)}
+              <li className="sub"><span>Totale video</span><span>{euroTesto(tv)}</span></li>
+              <li className="tot"><span>Totale</span><span><Euro centesimi={tf + tv} /></span></li>
+            </>
+          ) : (
+            <>{li(righeFoto)}<li className="tot"><span>Totale</span><span><Euro centesimi={tf} /></span></li></>
+          )}
+        </ul>
 
-        <details className="mb-4 bg-white rounded p-4">
-          <summary className="cursor-pointer font-medium">Leggi le condizioni (contratto)</summary>
-          <div className="mt-4"><Contratto testo={props.contratto} /></div>
-        </details>
-        <label className="flex gap-2 mb-6"><input type="checkbox" checked={accetto} onChange={(e) => setAccetto(e.target.checked)} />
-          <span>Abbiamo letto le condizioni e confermiamo il servizio con gli opzionali selezionati.</span></label>
-
-        <button type="button" onClick={invia} disabled={inCorso || !!props.calcolo.errore}
-          className="bg-salvia-scuro text-white px-6 py-3 rounded disabled:opacity-50">
-          {inCorso ? "Invio…" : "Conferma il preventivo"}
-        </button>
-        {errore && <p role="alert" className="text-red-700 mt-3">{errore}</p>}
+        {props.confermato ? (
+          <div className="ok">
+            <p><b>Preventivo confermato. La data è vostra!</b></p>
+            <p>Riceverete a breve una mia mail con il riepilogo. Da questo stesso link, d’ora in poi, trovate timeline, riepilogo e pagamenti sempre aggiornati.</p>
+            <button type="button" className="cta" onClick={() => location.reload()}>Vai alla vostra area Sposi</button>
+          </div>
+        ) : (
+          <div>
+            <details>
+              <summary>Leggi le condizioni del servizio</summary>
+              <Contratto testo={props.contratto} />
+            </details>
+            <p>Per preparare il contratto mi servono i vostri dati. Alla conferma non è richiesto alcun versamento.</p>
+            <div className="sposi">
+              {[0, 1].map((i) => (
+                <fieldset key={i}>
+                  <legend>Sposa/o {i + 1}</legend>
+                  {campoTesto(i, "nome", "Nome e cognome", "text", "name")}
+                  {campoTesto(i, "telefono", "Telefono", "tel", "tel")}
+                  {campoTesto(i, "email", "Email", "email", "email")}
+                  {campoTesto(i, "codice_fiscale", "Codice fiscale", "text", "off")}
+                  {campoIndirizzo(i, "residenza", "Indirizzo di residenza", false)}
+                  {campoIndirizzo(i, "preparativi", "Indirizzo dei preparativi (se diverso dalla location)", true)}
+                </fieldset>
+              ))}
+            </div>
+            <fieldset>
+              <label className="scelta"><input type="checkbox" checked={consenso} onChange={(e) => setConsenso(e.target.checked)} />
+                <span>Acconsentiamo all’uso di alcune foto per portfolio, sito e social</span></label>
+            </fieldset>
+            <label className="campo larga"><span>Note o richieste (facoltativo)</span>
+              <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></label>
+            <label className="scelta"><input type="checkbox" checked={accetto} onChange={(e) => setAccetto(e.target.checked)} />
+              <span>Abbiamo letto le condizioni e confermiamo il servizio con gli opzionali selezionati.</span></label>
+            <button className="cta" type="button" onClick={invia} disabled={inCorso || !!props.calcolo.errore}>
+              {inCorso ? "Invio in corso…" : "Conferma il preventivo"}
+            </button>
+            <p className="errore" role="alert">{errore ?? props.calcolo.errore ?? ""}</p>
+          </div>
+        )}
       </div>
     </section>
-  );
-}
-
-function Blocchetto({ b, titolo, sopratitolo, banda, children }: { b?: Blocco; titolo: string; sopratitolo?: string; banda?: boolean; children: React.ReactNode }) {
-  return (
-    <section className={`px-6 py-14 ${banda ? "bg-salvia-chiaro" : ""}`}>
-      <div className="max-w-3xl mx-auto">
-        <p className="uppercase tracking-[0.2em] text-xs mb-2 opacity-80">{b?.sopratitolo ?? sopratitolo ?? "Opzionale"}</p>
-        <h2 className="font-serif text-3xl mb-6">{b?.titolo ?? titolo}</h2>
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function Scheda({ v, attiva, onClick }: { v: VoceOfferta; attiva: boolean; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} aria-pressed={attiva}
-      className={`text-left rounded border p-4 transition ${attiva ? "border-salvia-scuro bg-white ring-2 ring-salvia" : "border-neutral-300 bg-white"}`}>
-      <div className="flex justify-between gap-3">
-        <b>{v.gruppo ? `${v.gruppo} · ` : ""}{v.voce}</b>
-        <span className="whitespace-nowrap">
-          {v.incluso ? "omaggio" : euroBreve(v.prezzo)}
-          {v.barrato > 0 && <span className="line-through opacity-60 ml-2 text-sm">{euroBreve(v.barrato)}</span>}
-        </span>
-      </div>
-      {v.descrizione && <p className="text-sm mt-1 opacity-80">{v.descrizione}</p>}
-    </button>
   );
 }
