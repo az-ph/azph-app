@@ -11,7 +11,7 @@ const STATI: Record<string, string> = {
 export default async function Oggi() {
   const supabase = await supabaseSessione();
   const { data: matrimoni, error } = await supabase.from("matrimonio")
-    .select("id, codice_id, stato, data_inizio, link:link_sposi ( token, revocato_il ), sposi:sposo ( ordine, nome )")
+    .select("id, codice_id, stato, data_inizio, link:link_sposi ( token, revocato_il ), sposi:sposo ( ordine, nome ), preventivo ( id )")
     .in("stato", ["qte_to_contact", "qte_quote", "wdg_confermato", "wdg_lightroom", "wdg_invoice", "wdg_album_todo", "wdg_album"])
     .order("data_inizio", { ascending: true, nullsFirst: false });
 
@@ -41,7 +41,9 @@ export default async function Oggi() {
                 <td className="py-1 tabular-nums">{m.codice_id}</td>
                 <td className="tabular-nums">{data(m.data_inizio)}</td>
                 <td>{nomi}</td>
-                <td>{STATI[m.stato] ?? m.stato}</td>
+                <td>{STATI[m.stato] ?? m.stato}
+                  {m.stato.startsWith("qte") && !(m.preventivo as { id: string }[]).length && <span className="ml-2 text-xs text-red-700">senza preventivo</span>}
+                </td>
                 <td>{link ? <a href={`/${link.token}`} target="_blank" rel="noopener noreferrer" className="underline text-salvia-scuro">Apri</a> : "—"}</td>
               </tr>
             );
