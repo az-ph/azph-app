@@ -285,12 +285,9 @@
 #azp{font-size:1.28rem}
 #azp h2{font-size:clamp(2.7rem,8vw,4.2rem)}
 #azp .sez{font-size:1.32rem}
-#azp .hero{background:#000}
 #azp .hero .logo{height:5.5rem;margin:0 auto}
 #azp .nomi{font-size:clamp(2.9rem,9vw,4.8rem);background:#fff}
 #azp .data{font-size:1.6rem}
 #azp .tl li{border-bottom:1px solid rgba(255,255,255,.55)}
-#azp .conferma{background:#000}
-#azp .ok{background:#222}
 #azp .contratto h3{font:400 1.4rem var(--titolo);text-transform:uppercase;margin:0 0 .75rem}
 #azp .omaggio-nota{font-size:1rem;margin:.75rem 0 0}
