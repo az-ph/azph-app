@@ -91,6 +91,7 @@ export default async function PaginaSposi({ params, searchParams }: {
           <div className="wrap">
             <h2>Grazie, il Matrimonio è confermato</h2>
             <p>La data è vostra! Vi ho mandato una mail con il riepilogo. Da questo stesso link trovate sempre timeline, servizi e pagamenti aggiornati: salvatelo tra i preferiti.</p>
+            <a className="cta" href={`/${token}`}>Vai alla vostra area Sposi</a>
           </div>
         </section>
       )}

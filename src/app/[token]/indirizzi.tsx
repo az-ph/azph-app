@@ -14,6 +14,7 @@ function cfNascosto(cf: string): string {
 /** Area Sposi: i dati inseriti alla conferma e l'indirizzo dei preparativi, da completare prima del Matrimonio. */
 export function DatiSposi({ token, sposi, modificabile }: { token: string; sposi: Sposo[]; modificabile: boolean }) {
   const [valori, setValori] = useState<Indirizzo[]>(() => [0, 1].map((i) => dividiIndirizzo(sposi[i]?.indirizzo_preparativi ?? "")));
+  const [cf, setCf] = useState(["", ""]);
   const [msg, setMsg] = useState<{ ok: boolean; testo: string } | null>(null);
   const [inCorso, avvia] = useTransition();
 
@@ -21,12 +22,17 @@ export function DatiSposi({ token, sposi, modificabile }: { token: string; sposi
 
   function salva() {
     setMsg(null);
+    if (cf.some((c) => c.trim() && !/^[A-Z0-9]{16}$/.test(c.replace(/\s/g, "").toUpperCase()))) {
+      setMsg({ ok: false, testo: "Il codice fiscale deve avere 16 caratteri." });
+      return;
+    }
     if (valori.some((v) => !indirizzoValido(v))) {
       setMsg({ ok: false, testo: "Completate ogni indirizzo iniziato: via, CAP di 5 cifre, località e provincia." });
       return;
     }
     avvia(async () => {
-      const r = await salvaIndirizzi(token, { sposi: valori.map((v) => ({ indirizzo_preparativi: unisciIndirizzo(v) })) });
+      const r = await salvaIndirizzi(token, { sposi: valori.map((v, i) => ({ indirizzo_preparativi: unisciIndirizzo(v), codice_fiscale: cf[i] })) });
+      if (r.ok) setCf(["", ""]);
       setMsg(r.ok ? { ok: true, testo: "Salvato, grazie!" } : { ok: false, testo: r.errore ?? "Errore" });
     });
   }
@@ -49,6 +55,12 @@ export function DatiSposi({ token, sposi, modificabile }: { token: string; sposi
               <fieldset key={i}>
                 <legend>{s.nome || `Sposa/o ${i + 1}`}</legend>
                 <dl className="dati-sposo">{righe.map(([k, x]) => <div key={k}><dt>{k}</dt><dd>{x}</dd></div>)}</dl>
+                {modificabile && (
+                  <label className="campo"><span>Codice fiscale da correggere</span>
+                    <input type="text" maxLength={16} autoComplete="off" placeholder="Solo se va cambiato" value={cf[i]}
+                      onChange={(e) => setCf(cf.map((c, j) => (j === i ? e.target.value.toUpperCase() : c)))} />
+                  </label>
+                )}
                 <div className="campo ind"><span>Indirizzo dei preparativi</span>
                   <div className="ind-griglia">
                     <input type="text" placeholder="Via e numero civico" value={v.via} disabled={!modificabile} onChange={(e) => imposta(i, { via: e.target.value })} />
@@ -65,7 +77,7 @@ export function DatiSposi({ token, sposi, modificabile }: { token: string; sposi
           })}
         </div>
         {modificabile && (
-          <button className="cta" type="button" onClick={salva} disabled={inCorso}>{inCorso ? "Salvataggio…" : "Salva i preparativi"}</button>
+          <button className="cta" type="button" onClick={salva} disabled={inCorso}>{inCorso ? "Salvataggio…" : "Salva"}</button>
         )}
         {msg && <p className={msg.ok ? "salvato" : "errore"} role="status">{msg.testo}</p>}
       </div>
