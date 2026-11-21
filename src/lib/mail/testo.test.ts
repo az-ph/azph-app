@@ -26,8 +26,9 @@ describe("mail dai modelli", () => {
 
 describe("firma e colori", () => {
   it("firma HTML in coda, firma breve nel testo", () => {
-    const r = componi("A presto,\n{FIRMA}", {}, stileDaColori({ salvia: "#9caf88", antracite: "#383838" }), { testo: "Alessandro", html: "<b>Firma</b>" });
-    expect(r.testo).toBe("A presto,\nAlessandro\n");
+    const r = componi("A presto\n{FIRMA}", {}, stileDaColori({ salvia: "#9caf88", antracite: "#383838" }), { testo: "Alessandro", html: "<b>Firma</b>" });
+    expect(r.testo).toBe("A presto\nAlessandro\n");
+    expect(r.html).toContain("A presto<br>Alessandro");
     expect(r.html).not.toContain("{FIRMA}");
     expect(r.html.endsWith('<div style="margin-top:4px"><b>Firma</b></div>')).toBe(true);
   });

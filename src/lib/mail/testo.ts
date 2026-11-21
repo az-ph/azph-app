@@ -18,7 +18,7 @@ export function stileDaColori(c: Record<string, string> | null | undefined): Sti
   };
 }
 
-/** {FIRMA}: nel testo semplice la firma breve; nell'HTML la firma completa (se c'è) in coda alla mail. */
+/** {FIRMA}: il nome breve nel corpo; la firma HTML completa (se c'è) in coda alla mail. */
 export type Firma = { testo: string; html?: string };
 
 export function escH(s: string): string {
@@ -36,8 +36,8 @@ export function componi(t: string, blocchi: Record<string, Blocco> = {}, stile: 
   const segnaposto = (k: string) => `\u0000${k}\u0000`;
   const conBlocchi = (x: string) => Object.keys(blocchi).reduce((a, k) => a.split(`{${k}}`).join(segnaposto(k)), x);
   const testoFirma = t.split("{FIRMA}").join(firma.testo);
-  // con la firma HTML, nel corpo HTML {FIRMA} sparisce e la firma va in coda
-  const base = conBlocchi(firma.html ? t.replace(/\n?\{FIRMA\}/g, "") : testoFirma);
+  // {FIRMA} = nome breve nel corpo; la firma HTML completa (se c'è) va in coda
+  const base = conBlocchi(testoFirma);
 
   // testo semplice
   let testo = conBlocchi(testoFirma).replace(/\*\*(.+?)\*\*/g, "$1").replace(/\[!([^\]]+)\]\(([^)]+)\)/g, "$1: $2");
