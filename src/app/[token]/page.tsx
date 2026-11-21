@@ -107,6 +107,12 @@ export default async function PaginaSposi({ params }: { params: Promise<{ token:
         />
       )}
 
+      {p.modo === "preventivo" && !calcolo.preventivo && (
+        <Sezione titolo="Il vostro preventivo">
+          <p>Il preventivo è in preparazione: ve lo mando a breve. Per qualsiasi cosa scrivetemi pure.</p>
+        </Sezione>
+      )}
+
       {(p.modo === "sposi" || p.modo === "chiuso") && <AreaSposi p={p} />}
 
       <footer className="bg-antracite text-white/80 text-sm py-10 px-6 text-center space-y-1">
