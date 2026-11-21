@@ -5,21 +5,9 @@ import { selezione, importiConferma, type Offerta, type VoceOfferta, ErroreSelez
 import { conferma, traccia } from "./azioni";
 import { Contratto, Euro, Evidenzia, Paragrafi, euroTesto } from "./testo";
 import type { Blocco } from "@/lib/sposi/componi";
+import { campiMancanti } from "@/lib/sposi/indirizzo";
 
 type SposoDati = { nome: string; telefono: string; email: string; codice_fiscale: string; indirizzo: string; indirizzo_preparativi: string };
-type Indirizzo = { via: string; cap: string; loc: string; prov: string };
-
-const PROVINCE = "AG AL AN AO AP AQ AR AT AV BA BG BI BL BN BO BR BS BT BZ CA CB CE CH CL CN CO CR CS CT CZ EN FC FE FG FI FM FR GE GO GR IM IS KR LC LE LI LO LT LU MB MC ME MI MN MO MS MT NA NO NU OR PA PC PD PE PG PI PN PO PR PT PU PV PZ RA RC RE RG RI RM RN RO SA SI SO SP SR SS SU SV TA TE TN TO TP TR TS TV UD VA VB VC VE VI VR VT VV".split(" ");
-
-/** "Via Roma 1 - 46100 Mantova MN" ⇄ quattro caselle, come nella pagina attuale. */
-function divididIndirizzo(s: string): Indirizzo {
-  const m = s.match(/^(.*) - (\d{5}) (.*) ([A-Z]{2})$/);
-  return m ? { via: m[1], cap: m[2], loc: m[3], prov: m[4] } : { via: s, cap: "", loc: "", prov: "" };
-}
-function unisciIndirizzo(i: Indirizzo): string {
-  if (!i.via.trim() && !i.cap.trim() && !i.loc.trim()) return "";
-  return `${i.via.trim()} - ${i.cap.trim()} ${i.loc.trim()} ${i.prov}`.trim();
-}
 
 export function Preventivo(props: {
   token: string;
@@ -243,7 +231,6 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
     const s = props.sposi[i];
     return {
       nome: s?.nome ?? "", telefono: s?.telefono ?? "", email: s?.email ?? "", codice_fiscale: s?.codice_fiscale ?? "",
-      residenza: divididIndirizzo(s?.indirizzo ?? ""), preparativi: divididIndirizzo(s?.indirizzo_preparativi ?? ""),
     };
   };
   const [sposi, setSposi] = useState(() => [iniziale(0), iniziale(1)]);
@@ -251,23 +238,47 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
   const [note, setNote] = useState("");
   const [accetto, setAccetto] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
+  const [mancanti, setMancanti] = useState<Set<string>>(new Set());
+  const [provato, setProvato] = useState(false);
   const [inCorso, avvia] = useTransition();
 
-  const aggiorna = (i: number, patch: Partial<ReturnType<typeof iniziale>>) =>
-    setSposi(sposi.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+
+  // dopo il primo tentativo i campi si ricontrollano mentre si scrive
+  const controlla = (sp = sposi, acc = accetto) => {
+    const m = campiMancanti(sp, acc);
+    setMancanti(new Set(m.map((x) => x.chiave)));
+    return m;
+  };
+  const aggiornaEControlla = (i: number, patch: Partial<ReturnType<typeof iniziale>>) => {
+    const nuovi = sposi.map((s, j) => (j === i ? { ...s, ...patch } : s));
+    setSposi(nuovi);
+    if (provato) controlla(nuovi);
+  };
 
   function invia() {
     setErrore(null);
+    setProvato(true);
+    const m = controlla();
+    if (m.length) {
+      setErrore(`Per confermare manca${m.length > 1 ? "no" : ""}: ${m.map((x) => x.etichetta).join(", ")}.`);
+      const primo = document.querySelector<HTMLElement>(`[data-campo="${m[0].chiave}"]`);
+      primo?.focus({ preventScroll: true });
+      primo?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     avvia(async () => {
       const r = await conferma(props.token, {
         extra: [...props.scelti], qta: props.qta, video: props.video, conVideo: props.conVideo,
         sposi: sposi.map((s) => ({
           nome: s.nome, telefono: s.telefono, email: s.email, codice_fiscale: s.codice_fiscale,
-          indirizzo: unisciIndirizzo(s.residenza), indirizzo_preparativi: unisciIndirizzo(s.preparativi),
         })),
         consensoPromo: consenso, note, accetto,
       });
-      if (r.ok) props.onConfermato(); else setErrore(r.errore ?? "Errore");
+      if (r.ok) {
+        props.onConfermato();
+        // la pagina diventa l'area Sposi, con il messaggio di benvenuto in alto
+        location.replace(`${location.pathname}?confermato=1`);
+      } else setErrore(r.errore ?? "Errore");
     });
   }
 
@@ -282,29 +293,15 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
   const tf = righeFoto.reduce((s, r) => s + r[1], 0), tv = righeVideo.reduce((s, r) => s + r[1], 0);
   const li = (r: [string, number][]) => r.map(([k, v], i) => <li key={k + i}><span>{k}</span><span>{v ? euroTesto(v) : "Omaggio"}</span></li>);
 
-  const campoTesto = (i: number, k: "nome" | "telefono" | "email" | "codice_fiscale", etichetta: string, tipo: string, ac: string) => (
-    <label className="campo"><span>{etichetta}</span>
-      <input type={tipo} autoComplete={i === 0 ? ac : "off"} value={sposi[i][k]} onChange={(e) => aggiorna(i, { [k]: e.target.value })} />
-    </label>
-  );
-  const campoIndirizzo = (i: number, k: "residenza" | "preparativi", etichetta: string, facoltativo: boolean) => {
-    const v = sposi[i][k];
-    const set = (patch: Partial<Indirizzo>) => aggiorna(i, { [k]: { ...v, ...patch } });
+  const campoTesto = (i: number, k: "nome" | "telefono" | "email" | "codice_fiscale", etichetta: string, tipo: string, ac: string) => {
+    const manca = mancanti.has(`${i}.${k}`);
     return (
-      <div className="campo ind"><span>{etichetta}</span>
-        <div className="ind-griglia">
-          <input type="text" placeholder="Via e numero civico" value={v.via} onChange={(e) => set({ via: e.target.value })} />
-          <input type="text" placeholder="CAP" inputMode="numeric" maxLength={5} value={v.cap} onChange={(e) => set({ cap: e.target.value })} />
-          <input type="text" placeholder="Località" value={v.loc} onChange={(e) => set({ loc: e.target.value })} />
-          <select aria-label="Provincia" value={v.prov} onChange={(e) => set({ prov: e.target.value })}>
-            <option value="">Prov.</option>{PROVINCE.map((p) => <option key={p}>{p}</option>)}<option value="EE">Estero</option>
-          </select>
-        </div>
-        {facoltativo && <small className="nota-campo">Lasciate vuoto se vi preparate in location</small>}
-      </div>
+      <label className={`campo${manca ? " manca" : ""}`}><span>{etichetta} <abbr className="obb" title="obbligatorio">*</abbr></span>
+        <input type={tipo} required aria-required="true" aria-invalid={manca || undefined} data-campo={`${i}.${k}`}
+          autoComplete={i === 0 ? ac : "off"} value={sposi[i][k]} onChange={(e) => aggiornaEControlla(i, { [k]: e.target.value })} />
+      </label>
     );
   };
-
   return (
     <section className="conferma" id="azp-conferma">
       <div className="wrap">
@@ -337,6 +334,7 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
               <Contratto testo={props.contratto} />
             </details>
             <p>Per preparare il contratto mi servono i vostri dati. Alla conferma non è richiesto alcun versamento.</p>
+            <p className="nota-obb"><abbr className="obb" title="obbligatorio">*</abbr> campo obbligatorio. Gli indirizzi li inserirete dopo, nella vostra area Sposi.</p>
             <div className="sposi">
               {[0, 1].map((i) => (
                 <fieldset key={i}>
@@ -345,23 +343,23 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
                   {campoTesto(i, "telefono", "Telefono", "tel", "tel")}
                   {campoTesto(i, "email", "Email", "email", "email")}
                   {campoTesto(i, "codice_fiscale", "Codice fiscale", "text", "off")}
-                  {campoIndirizzo(i, "residenza", "Indirizzo di residenza", false)}
-                  {campoIndirizzo(i, "preparativi", "Indirizzo dei preparativi (se diverso dalla location)", true)}
                 </fieldset>
               ))}
             </div>
             <fieldset>
               <label className="scelta"><input type="checkbox" checked={consenso} onChange={(e) => setConsenso(e.target.checked)} />
-                <span>Acconsentiamo all’uso di alcune foto per portfolio, sito e social</span></label>
+                <span>Acconsentiamo all’uso di alcune foto per portfolio, sito e social (facoltativo)</span></label>
             </fieldset>
             <label className="campo larga"><span>Note o richieste (facoltativo)</span>
               <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></label>
-            <label className="scelta"><input type="checkbox" checked={accetto} onChange={(e) => setAccetto(e.target.checked)} />
-              <span>Abbiamo letto le condizioni e confermiamo il servizio con gli opzionali selezionati.</span></label>
+            <label className={`scelta${mancanti.has("accetto") ? " manca" : ""}`}>
+              <input type="checkbox" required aria-required="true" aria-invalid={mancanti.has("accetto") || undefined} data-campo="accetto"
+                checked={accetto} onChange={(e) => { setAccetto(e.target.checked); if (provato) controlla(sposi, e.target.checked); }} />
+              <span>Abbiamo letto le condizioni e confermiamo il servizio con gli opzionali selezionati. <abbr className="obb" title="obbligatorio">*</abbr></span></label>
             <button className="cta" type="button" onClick={invia} disabled={inCorso || !!props.calcolo.errore}>
               {inCorso ? "Invio in corso…" : "Conferma il preventivo"}
             </button>
-            <p className="errore" role="alert">{errore ?? props.calcolo.errore ?? ""}</p>
+            <p className="errore" role="alert" aria-live="assertive">{errore ?? props.calcolo.errore ?? ""}</p>
           </div>
         )}
       </div>

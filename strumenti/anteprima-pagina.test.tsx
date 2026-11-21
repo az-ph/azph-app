@@ -40,7 +40,7 @@ vi.mock("@/lib/sposi/dati", () => ({
 it("anteprima", async () => {
   const { renderToString } = await import("react-dom/server");
   const { default: Pagina } = await import("../src/app/[token]/page");
-  const el = await Pagina({ params: Promise.resolve({ token: "x".repeat(22) }) });
+  const el = await Pagina({ params: Promise.resolve({ token: "x".repeat(22) }), searchParams: Promise.resolve({ confermato: process.env.CONFERMATO }) });
   const css = readFileSync("src/app/[token]/pagina.css", "utf8");
   const font = (p: string) => readFileSync(p, "utf8").replace(/url\(\.\/files\//g, `url(file://${process.cwd()}/node_modules/${p.split("/")[1]}/${p.split("/")[2]}/files/`);
   const fonts = ["node_modules/@fontsource/jost/300.css", "node_modules/@fontsource/jost/500.css", "node_modules/@fontsource/playfair-display/400.css", "node_modules/@fontsource/allison/400.css"]
