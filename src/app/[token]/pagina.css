@@ -285,9 +285,19 @@
 #azp{font-size:1.28rem}
 #azp h2{font-size:clamp(2.7rem,8vw,4.2rem)}
 #azp .sez{font-size:1.32rem}
-#azp .hero .logo{height:5.5rem;margin:0 auto}
+#azp .hero .logo{height:5.5rem;margin:0}
 #azp .nomi{font-size:clamp(2.9rem,9vw,4.8rem);background:#fff}
 #azp .data{font-size:1.6rem}
 #azp .tl li{border-bottom:1px solid rgba(255,255,255,.55)}
 #azp .contratto h3{font:400 1.4rem var(--titolo);text-transform:uppercase;margin:0 0 .75rem}
 #azp .omaggio-nota{font-size:1rem;margin:.75rem 0 0}
+
+/* allineamento intestazione e a capo del testo */
+#azp{overflow-x:clip}
+#azp .firma-riga{max-width:62rem;margin:0 auto}
+#azp .nomi,#azp .data,#azp h2,#azp .motto{text-wrap:balance}
+#azp p,#azp li,#azp .scelta span,#azp dd{text-wrap:pretty}
+#azp .scelta{align-items:baseline;max-width:44rem}
+#azp .scelta input{flex:none;margin:0;transform:translateY(.15em)}
+#azp section p,#azp li,#azp dd{hyphens:manual;-webkit-hyphens:manual}
+@media (max-width:40rem){#azp section p{text-align:left}}
