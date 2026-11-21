@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 
 export default async function Oggi() {
@@ -12,6 +13,9 @@ export default async function Oggi() {
         <p className="text-red-700">Il database non risponde: {error.message}</p>
       ) : (
         <p>Accesso completo. Matrimoni nel database: {count ?? 0}.</p>
+      )}
+      {!error && !count && (
+        <p className="mt-4"><Link href="/admin/importa" className="underline text-salvia-scuro">Importa i dati dal foglio Matrimoni</Link></p>
       )}
     </section>
   );
