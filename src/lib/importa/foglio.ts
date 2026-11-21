@@ -215,6 +215,9 @@ export function leggiWorkbook(buf: ArrayBuffer | Uint8Array, oggi = new Date().t
       const tot = euro(w["TOT"]) ?? 0;
       if (tot !== somma) avvisi.push(`${idFoglio}: TOT ${tot / 100} € diverso dalla somma delle voci ${somma / 100} €`);
       if (stato.startsWith("wdg") && !dataIso(w["DATA INIZIO"])) avvisi.push(`${idFoglio}: confermato senza data`);
+      if (vero(w["MB"]) && !importi.some((x) => x.voce === "memory_box")) {
+        avvisi.push(`${idFoglio}: MB spuntato ma la memory box non è nel pacchetto, spunta non importata`);
+      }
 
       // Sposi: da Preventivi se ci sono i dati, altrimenti i nomi di Aperti ("Nome e Nome")
       let sposi = [1, 2].map((n) => ({
@@ -280,7 +283,7 @@ export function leggiWorkbook(buf: ArrayBuffer | Uint8Array, oggi = new Date().t
         link_upyourshoot: testo(p?.["GALLERIA SPOSI"]) || null,
         pagina_congiunta: congiunta,
         videomaker: video || null,
-        memory_box_consegnata: vero(w["MB"]),
+        memory_box_consegnata: vero(w["MB"]) && importi.some((x) => x.voce === "memory_box"),
         recensione_ricevuta: vero(w["REC"]),
         sposi, preventivo, importi,
         incassato: euro(w["SALDO"]) ?? 0,

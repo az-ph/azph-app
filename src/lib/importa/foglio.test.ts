@@ -13,17 +13,17 @@ export function workbookDiProva(): Uint8Array {
     ["Matrimoni aperti"], intestAperti,
     ["2027-001", "WDG 2027", "MAT", "Anna e Bruno", 46519, 0.625, 46520, 0.0416667, "Villa Prova", "MN", true, "TRUE", "MBA",
       1100, null, null, null, 50, 450, null, 1600, 300],
-    ["2027-002", "QTE Quote", "IGR", "Carla e Dario", "20/06/2027", null, null, null, "Location Nuova", "BS", false, "", "GBO",
+    ["2027-002", "QTE Quote", "IGR", "Carla e Dario", "20/06/2027", null, null, null, "Location Nuova", "BS", true, "", "GBO",
       null, null, null, null, null, null, null, 0, 0],
     ["2027-003-VdM", "QTE Quote", "VDM", "Elena e Fabio", null, null, null, null, "Villa Prova", "MN", "", "", "MBA",
       null, null, null, null, null, null, null, 0, 0],
     ["2027-004", "", "", "", null, null, null, null, "", "", "", "", "", null, null, null, null, null, null, null, 0, 0],
-    ["2027-005", "WDG 2027", "PSP", "Gina e Ugo", 46530, null, null, null, "Villa Prova", "MN", "", "", "",
+    ["2027-005", "WDG 2027", "PSP", "Gina e Ugo", 46530, null, null, null, "Villa Prova", "MN", true, "", "",
       1000, null, null, null, 0, null, null, 1200, 0],
   ]);
   ag("Lavorazione", [["Lavorazione"], intestAperti]);
   ag("Chiusi", [["Chiusi"], intestAperti,
-    ["2025-010", "CLO Completed", "WEB", "Ivo e Lia", 45800, null, null, null, "Villa Prova", "MN", "", "", "", 950, null, null, null, 0, null, null, 950, 950],
+    ["2025-010", "CLO Completed", "WEB", "Ivo e Lia", 45800, null, null, null, "Villa Prova", "MN", true, "", "", 950, null, null, null, 0, null, null, 950, 950],
   ]);
   ag("Preventivi", [
     ["ID", "FORMULA", "VERSIONE", "PREZZI SPECIALI", "PROPONI VIDEO", "PREZZO VIDEO", "PROPONI PRE WDG", "PROPONI OP2 IBRIDO",
@@ -129,6 +129,13 @@ describe("lettura del foglio Matrimoni", () => {
 
   it("flag MB e REC; GBO diventa CNT Centobraccia", () => {
     expect(m("2027-002")).toMatchObject({ memory_box_consegnata: false, recensione_ricevuta: false, videomaker: "CNT" });
+  });
+
+  it("MB solo se la memory box è nel pacchetto (anche omaggio)", () => {
+    expect(m("2027-005").memory_box_consegnata).toBe(true);
+    expect(m("2025-010").memory_box_consegnata).toBe(true);
+    expect(m("2027-002").memory_box_consegnata).toBe(false);
+    expect(resoconto.avvisi).toContain("2027-002: MB spuntato ma la memory box non è nel pacchetto, spunta non importata");
   });
 
   it("pagina congiunta dal suffisso -VdM", () => {
