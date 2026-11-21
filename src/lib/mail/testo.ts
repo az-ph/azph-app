@@ -5,7 +5,21 @@
 
 export type Blocco = { html: string; testo: string };
 
-const COLORE = { testo: "#383838", verde: "#62744f", linea: "#dddddd" };
+/** Colori delle mail: dalle impostazioni dell'istanza (qui solo valori neutri di riserva). */
+export type Stile = { testo: string; pulsante: string; testoPulsante: string; linea: string };
+const NEUTRO: Stile = { testo: "#333333", pulsante: "#555555", testoPulsante: "#ffffff", linea: "#dddddd" };
+
+export function stileDaColori(c: Record<string, string> | null | undefined): Stile {
+  return {
+    testo: c?.antracite ?? NEUTRO.testo,
+    pulsante: c?.salvia ?? NEUTRO.pulsante,
+    testoPulsante: c?.salvia ? (c?.antracite ?? "#000000") : NEUTRO.testoPulsante,
+    linea: NEUTRO.linea,
+  };
+}
+
+/** {FIRMA}: nel testo semplice la firma breve; nell'HTML la firma completa (se c'è) in coda alla mail. */
+export type Firma = { testo: string; html?: string };
 
 export function escH(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -17,13 +31,16 @@ export function riempi(t: string, valori: Record<string, string>): string {
 }
 
 /** Testo del modello (già riempito) + blocchi (es. RIEPILOGO) → html e testo. */
-export function componi(t: string, blocchi: Record<string, Blocco> = {}): Blocco {
+export function componi(t: string, blocchi: Record<string, Blocco> = {}, stile: Stile = NEUTRO, firma: Firma = { testo: "" }): Blocco {
+  const COLORE = stile;
   const segnaposto = (k: string) => `\u0000${k}\u0000`;
-  let base = t;
-  for (const k of Object.keys(blocchi)) base = base.split(`{${k}}`).join(segnaposto(k));
+  const conBlocchi = (x: string) => Object.keys(blocchi).reduce((a, k) => a.split(`{${k}}`).join(segnaposto(k)), x);
+  const testoFirma = t.split("{FIRMA}").join(firma.testo);
+  // con la firma HTML, nel corpo HTML {FIRMA} sparisce e la firma va in coda
+  const base = conBlocchi(firma.html ? t.replace(/\n?\{FIRMA\}/g, "") : testoFirma);
 
   // testo semplice
-  let testo = base.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\[!([^\]]+)\]\(([^)]+)\)/g, "$1: $2");
+  let testo = conBlocchi(testoFirma).replace(/\*\*(.+?)\*\*/g, "$1").replace(/\[!([^\]]+)\]\(([^)]+)\)/g, "$1: $2");
   for (const [k, b] of Object.entries(blocchi)) testo = testo.split(segnaposto(k)).join(b.testo);
 
   // html: paragrafi separati da righe vuote, a capo singoli come <br>
@@ -34,7 +51,7 @@ export function componi(t: string, blocchi: Record<string, Blocco> = {}): Blocco
       return {
         html: escH(r)
           .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
-          .replace(/\[!([^\]]+)\]\(([^)]+)\)/g, (_m, et: string, url: string) => pulsante(et, url)),
+          .replace(/\[!([^\]]+)\]\(([^)]+)\)/g, (_m, et: string, url: string) => pulsante(et, url, COLORE)),
       };
     });
     let html = "", aperto: string[] = [];
@@ -45,18 +62,19 @@ export function componi(t: string, blocchi: Record<string, Blocco> = {}): Blocco
     chiudi();
     return html;
   });
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:${COLORE.testo};max-width:560px">${paragrafi.join("")}</div>`;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:${COLORE.testo};max-width:560px">${paragrafi.join("")}</div>` +
+    (firma.html ? `<div style="margin-top:4px">${firma.html}</div>` : "");
   return { html, testo: testo.trim() + "\n" };
 }
 
-function pulsante(etichetta: string, url: string): string {
+function pulsante(etichetta: string, url: string, c: Stile): string {
   // solo link https: un modello non deve poter inserire altro
   const sicuro = /^https:\/\/[^\s"<>]+$/.test(url.replace(/&amp;/g, "&")) ? url : "#";
-  return `<a href="${sicuro}" style="display:inline-block;margin:8px 0;padding:12px 22px;background:${COLORE.verde};color:#ffffff;text-decoration:none;font-weight:bold">${etichetta}</a>`;
+  return `<a href="${sicuro}" style="display:inline-block;margin:8px 0;padding:12px 22px;background:${c.pulsante};color:${c.testoPulsante};text-decoration:none;font-weight:bold">${etichetta}</a>`;
 }
 
 /** Tabella del riepilogo: solo linee orizzontali, importi a destra, totale in grassetto. */
-export function tabella(righe: [string, string][], totale?: [string, string]): Blocco {
+export function tabella(righe: [string, string][], totale?: [string, string], COLORE: Stile = NEUTRO): Blocco {
   const td = `padding:7px 0;border-bottom:1px solid ${COLORE.linea};vertical-align:top;`;
   const tot = `padding:9px 0;border-top:2px solid ${COLORE.testo};font-weight:bold;`;
   const html = `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:520px;margin:6px 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:14px">` +

@@ -5,9 +5,10 @@
 import impostazioni from "./impostazioni.json";
 import pagina from "./pagina.json";
 import messaggi from "./messaggi.json";
+import { FIRMA_MAIL_HTML } from "./firma-mail";
 
 export const ISTANZA_AZPH = {
-  impostazioni,
+  impostazioni: { ...impostazioni, marchio: { ...impostazioni.marchio, firma_mail_html: FIRMA_MAIL_HTML } },
   blocchi: pagina,
   messaggi,
   // Contatti dei collaboratori (per codice): servono alle mail di conferma.

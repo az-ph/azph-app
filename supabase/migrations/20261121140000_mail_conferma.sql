@@ -13,6 +13,7 @@ begin
   end if;
   update public.impostazioni set
     marchio = coalesce(dati -> 'impostazioni' -> 'marchio', marchio),
+    colori = coalesce(dati -> 'impostazioni' -> 'colori', colori),
     zone = coalesce(array(select jsonb_array_elements_text(dati -> 'impostazioni' -> 'zone')), zone),
     url_recensioni = coalesce(dati -> 'impostazioni' ->> 'url_recensioni', url_recensioni),
     condizioni_pagamento = coalesce(dati -> 'impostazioni' ->> 'condizioni_pagamento', condizioni_pagamento),

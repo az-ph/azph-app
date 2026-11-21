@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { componi, riempi, tabella } from "./testo";
+import { componi, riempi, stileDaColori, tabella } from "./testo";
 
 describe("mail dai modelli", () => {
   it("riempie i segnaposto e lascia quelli sconosciuti", () => {
@@ -21,5 +21,18 @@ describe("mail dai modelli", () => {
 
   it("il pulsante accetta solo link https", () => {
     expect(componi("[!Apri](javascript:alert(1))").html).toContain('href="#"');
+  });
+});
+
+describe("firma e colori", () => {
+  it("firma HTML in coda, firma breve nel testo", () => {
+    const r = componi("A presto,\n{FIRMA}", {}, stileDaColori({ salvia: "#9caf88", antracite: "#383838" }), { testo: "Alessandro", html: "<b>Firma</b>" });
+    expect(r.testo).toBe("A presto,\nAlessandro\n");
+    expect(r.html).not.toContain("{FIRMA}");
+    expect(r.html.endsWith('<div style="margin-top:4px"><b>Firma</b></div>')).toBe(true);
+  });
+  it("pulsante salvia con testo antracite", () => {
+    const r = componi("[!Apri](https://x.it)", {}, stileDaColori({ salvia: "#9caf88", antracite: "#383838" }));
+    expect(r.html).toContain("background:#9caf88;color:#383838");
   });
 });

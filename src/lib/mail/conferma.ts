@@ -1,7 +1,7 @@
 import "server-only";
 import { supabaseServizio } from "@/lib/supabase/server";
 import { data, dataEstesa, euro } from "@/lib/formato";
-import { componi, escH, riempi, tabella, type Blocco } from "./testo";
+import { componi, escH, riempi, stileDaColori, tabella, type Blocco } from "./testo";
 import { inviaMail } from "./resend";
 
 export type DatiConferma = {
@@ -31,7 +31,7 @@ export type DatiConferma = {
 export async function mailConferma(c: DatiConferma): Promise<void> {
   const db = supabaseServizio();
   const [imp, modelli, vm] = await Promise.all([
-    db.from("impostazioni").select("marchio, firma").single(),
+    db.from("impostazioni").select("marchio, colori, firma").single(),
     db.from("modello_messaggio").select("chiave, oggetto, corpo_mail")
       .in("chiave", ["conferma_sposi", "conferma_video", "conferma_video_duo"]),
     c.videomakerCodice
@@ -43,6 +43,8 @@ export async function mailConferma(c: DatiConferma): Promise<void> {
   const titolare = marchio.titolare || marchio.nome || "";
   const da = mittente ? `${titolare} <${mittente}>` : "";
   const modello = (k: string) => modelli.data?.find((m) => m.chiave === k);
+  const stile = stileDaColori(imp.data?.colori as Record<string, string> | null);
+  const firma = { testo: imp.data?.firma || marchio.firma || titolare, html: marchio.firma_mail_html || undefined };
   const videomaker = vm.data as { nome: string; email: string | null; telefono: string | null } | null;
 
   // 1. Mail agli Sposi
@@ -54,13 +56,13 @@ export async function mailConferma(c: DatiConferma): Promise<void> {
   else {
     const valori: Record<string, string> = {
       NOMI: c.nomi, DATA_ESTESA: dataEstesa(c.dataInizio), DATA: data(c.dataInizio), LINK: c.link,
-      TOTALE: euro(c.totaleFoto), FIRMA: imp.data?.firma || marchio.firma || titolare,
+      TOTALE: euro(c.totaleFoto),
       VIDEOMAKER: videomaker?.nome ?? "", VIDEOMAKER_TELEFONO: videomaker?.telefono ?? "",
     };
     const paragrafoVideo = c.video.length ? modello(c.congiunta ? "conferma_video_duo" : "conferma_video")?.corpo_mail ?? "" : "";
     valori.VIDEO = paragrafoVideo ? riempi(paragrafoVideo, valori) + "\n" : "";
-    const riepilogo = tabella(c.righeFoto, ["Totale servizi fotografici", euro(c.totaleFoto)]);
-    const corpo = componi(riempi(t.corpo_mail, valori), { RIEPILOGO: riepilogo });
+    const riepilogo = tabella(c.righeFoto, ["Totale servizi fotografici", euro(c.totaleFoto)], stile);
+    const corpo = componi(riempi(t.corpo_mail, valori), { RIEPILOGO: riepilogo }, stile, firma);
     const r = await inviaMail({
       da, a: destinatari, rispondiA: mittente, oggetto: riempi(t.oggetto, valori),
       html: corpo.html, testo: corpo.testo, idempotenza: `conferma-sposi-${c.preventivoId}`,

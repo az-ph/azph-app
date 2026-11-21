@@ -33,5 +33,11 @@
     "Ovunque in Italia"
   ],
   "url_recensioni": "https://www.matrimonio.com/fotografo-matrimonio/alessandro-zaniboni--e170111/opinioni",
-  "condizioni_pagamento": "Nessuna caparra alla conferma. Acconto del 50% dei servizi (album escluso) al kick-off meeting, saldo alla consegna delle foto. L'album e gli album genitori si pagano alla consegna dell'album."
+  "condizioni_pagamento": "Nessuna caparra alla conferma. Acconto del 50% dei servizi (album escluso) al kick-off meeting, saldo alla consegna delle foto. L'album e gli album genitori si pagano alla consegna dell'album.",
+  "colori": {
+    "salvia": "#9caf88",
+    "verde_scuro": "#62744f",
+    "tinta": "#e2e9da",
+    "antracite": "#383838"
+  }
 }
