@@ -13,6 +13,8 @@ export type DatiConferma = {
   location: string;
   link: string;
   congiunta: boolean;
+  /** Codice/nome della formula: solo nella notifica al titolare. */
+  formula: string;
   /** Righe per gli Sposi: servizio, omaggi, scelte. */
   righeFoto: [string, string][];
   totaleFoto: number;
@@ -90,7 +92,8 @@ export async function mailConferma(c: DatiConferma): Promise<void> {
 
 function corpoNotifica(c: DatiConferma, esito: string, videomaker: string | null): Blocco {
   const p = (html: string, stile = "") => `<p style="margin:14px 0 6px;${stile}">${html}</p>`;
-  const tFoto = tabella(c.righeFoto, ["Totale fotografia", euro(c.totaleFoto)]);
+  const righe = c.righeFoto.map((r, i): [string, string] => (i === 0 && c.formula ? [`${r[0]} (${c.formula})`, r[1]] : r));
+  const tFoto = tabella(righe, ["Totale fotografia", euro(c.totaleFoto)]);
   const tVideo = c.video.length
     ? tabella(c.video.map((v) => [v.etichetta, euro(v.totale)]), ["Totale video", euro(c.totaleVideo)]) : null;
   const sposi = c.sposi.map((s, i) => ({

@@ -301,3 +301,19 @@
 #azp .scelta input{flex:none;margin:0;transform:translateY(.15em)}
 #azp section p,#azp li,#azp dd{hyphens:manual;-webkit-hyphens:manual}
 @media (max-width:40rem){#azp section p{text-align:left}}
+/* campi obbligatori, conferma e indirizzi */
+#azp abbr.obb{text-decoration:none;color:var(--verde);font-weight:600;cursor:help}
+#azp section p.nota-obb{font-size:.9em;opacity:.85;text-align:left}
+#azp .campo.manca input,#azp .scelta.manca input{outline:3px solid #ffb4a8;outline-offset:1px}
+#azp .campo.manca span,#azp .scelta.manca span{color:#ffb4a8}
+#azp .grazie{background:var(--antracite);color:#fff;text-align:center}
+#azp .grazie h2{color:#fff}
+#azp section.grazie p{text-align:center;max-width:44rem;margin-left:auto;margin-right:auto}
+#azp .grazie a{color:var(--verde)}
+#azp #azp-dati .campo input:disabled,#azp #azp-dati .campo select:disabled{background:var(--tinta)}
+#azp section p.salvato{color:var(--verde-scuro);margin-top:1rem;text-align:left}
+#azp #azp-dati .campo input,#azp #azp-dati .campo select{border:1px solid #ccc}
+#azp .dati-sposo{margin:.5rem 0 1rem}
+#azp .dati-sposo div{display:flex;justify-content:space-between;gap:1rem;padding:.45rem 0;border-bottom:1px solid #ddd}
+#azp .dati-sposo dt{opacity:.75}
+#azp .dati-sposo dd{margin:0;text-align:right;overflow-wrap:anywhere}

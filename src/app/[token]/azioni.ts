@@ -17,8 +17,11 @@ const Sposo = z.object({
   codice_fiscale: z.string().trim().transform((s) => s.replace(/\s/g, "").toUpperCase())
     .pipe(z.string().regex(/^[A-Z0-9]{16}$/, "Il codice fiscale deve avere 16 caratteri.")),
   indirizzo: z.string().trim().min(5).max(300),
+  // l'indirizzo dei preparativi si inserisce più avanti, nell'area Sposi
   indirizzo_preparativi: z.string().trim().max(300).optional().default(""),
 });
+
+const ETICHETTE: Record<string, string> = { nome: "nome e cognome", telefono: "telefono", email: "email", codice_fiscale: "codice fiscale di 16 caratteri", indirizzo: "indirizzo di residenza" };
 
 const Conferma = z.object({
   extra: z.array(z.string().max(64)).max(50),
@@ -39,10 +42,12 @@ export async function conferma(token: string, input: unknown): Promise<EsitoConf
 
   const dati = Conferma.safeParse(input);
   if (!dati.success) {
-    const msg = dati.error.issues[0];
-    if (msg?.path[0] === "accetto") return { errore: "Spuntate la casella di conferma per procedere." };
-    if (msg?.path.includes("codice_fiscale")) return { errore: "Controllate il codice fiscale: deve avere 16 caratteri." };
-    return { errore: "Compilate tutti i dati di entrambi gli Sposi." };
+    const manca = [...new Set(dati.error.issues.map((i) => {
+      if (i.path[0] === "accetto") return "la spunta di conferma delle condizioni";
+      if (i.path[0] === "sposi" && typeof i.path[1] === "number") return `${ETICHETTE[String(i.path[2])] ?? "dati"} (Sposa/o ${i.path[1] + 1})`;
+      return "dati del modulo";
+    }))];
+    return { errore: `Per confermare manca${manca.length > 1 ? "no" : ""}: ${manca.join(", ")}.` };
   }
   const d = dati.data;
 
@@ -108,8 +113,9 @@ export async function conferma(token: string, input: unknown): Promise<EsitoConf
       location: pagina.matrimonio.location,
       link: `${base}/${token}`,
       congiunta: pagina.matrimonio.paginaCongiunta,
+      formula: offerta.formula,
       righeFoto: [
-        [offerta.formula || "Servizio fotografico", euro(offerta.servizio.prezzo)],
+        ["Servizio fotografico", euro(offerta.servizio.prezzo)],
         ...offerta.voci.filter((v) => v.categoria === "omaggio").map((v): [string, string] => [v.voce, "omaggio"]),
         ...sel.foto.map((x): [string, string] => [x.etichetta.replace(/ \(omaggio\)$/, ""), x.totale ? euro(x.totale) : "omaggio"]),
       ],
@@ -135,4 +141,33 @@ export async function traccia(token: string, codice: string, attiva: boolean): P
   const mid = await matrimonioDaToken(token);
   if (!mid) return;
   try { await registraEvento(mid, attiva ? "selezione" : "deselezione", { codice }); } catch { /* non blocca la pagina */ }
+}
+
+const Indirizzi = z.object({
+  sposi: z.array(z.object({ indirizzo_preparativi: z.string().trim().max(300) })).length(2),
+});
+
+/** Area Sposi: gli Sposi inseriscono o correggono l'indirizzo dei preparativi. */
+export async function salvaIndirizzi(token: string, input: unknown): Promise<{ ok?: true; errore?: string }> {
+  const mid = await matrimonioDaToken(token);
+  if (!mid) return { errore: "Link non valido." };
+  const dati = Indirizzi.safeParse(input);
+  if (!dati.success) return { errore: "Controllate gli indirizzi." };
+
+  const { pagina } = await caricaPagina(mid);
+  if (pagina.modo !== "sposi") return { errore: "I dati non sono più modificabili da qui: scrivetemi pure." };
+
+  const db = supabaseServizio();
+  for (const [i, s] of dati.data.sposi.entries()) {
+    const { error } = await db.from("sposo")
+      .update({ indirizzo_preparativi: s.indirizzo_preparativi || null })
+      .eq("matrimonio_id", mid).eq("ordine", i + 1);
+    if (error) return { errore: "Salvataggio non riuscito, riprovate tra poco." };
+  }
+  // i preparativi risultano previsti se c'è almeno un indirizzo (non si tolgono da qui)
+  if (dati.data.sposi.some((s) => s.indirizzo_preparativi)) {
+    await db.from("matrimonio").update({ preparativi: true }).eq("id", mid);
+  }
+  revalidatePath(`/${token}`);
+  return { ok: true };
 }

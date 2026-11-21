@@ -9,6 +9,7 @@ import { data, ora } from "@/lib/formato";
 import { Paragrafi, Evidenzia, Contratto, Euro, euroTesto } from "./testo";
 import { Preventivo } from "./preventivo";
 import { Piede } from "./piede";
+import { DatiSposi } from "./indirizzi";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Il vostro Matrimonio", robots: { index: false, follow: false } };
@@ -20,8 +21,11 @@ const VOCI: Record<string, string> = {
 
 type Pagina = Awaited<ReturnType<typeof caricaPagina>>["pagina"];
 
-export default async function PaginaSposi({ params }: { params: Promise<{ token: string }> }) {
+export default async function PaginaSposi({ params, searchParams }: {
+  params: Promise<{ token: string }>; searchParams: Promise<{ confermato?: string }>;
+}) {
   const { token } = await params;
+  const appenaConfermato = (await searchParams).confermato === "1";
   const mid = await matrimonioDaToken(token);
   if (!mid) notFound();
 
@@ -81,6 +85,15 @@ export default async function PaginaSposi({ params }: { params: Promise<{ token:
         <div className="nomi">{p.nomi}</div>
         <div className="data">Wedding day | {data(p.matrimonio.dataInizio)}{p.modo === "preventivo" && versione ? ` - ${versione}` : ""}</div>
       </header>
+
+      {appenaConfermato && p.modo === "sposi" && (
+        <section className="grazie" role="status">
+          <div className="wrap">
+            <h2>Grazie, il Matrimonio è confermato</h2>
+            <p>La data è vostra! Vi ho mandato una mail con il riepilogo. Da questo stesso link trovate sempre timeline, servizi e pagamenti aggiornati: salvatelo tra i preferiti.</p>
+          </div>
+        </section>
+      )}
 
       {p.modo === "preventivo" && intro.map((b) => (
         <section key={b.chiave} className={b.banda ? "banda" : undefined}>
@@ -162,6 +175,9 @@ export default async function PaginaSposi({ params }: { params: Promise<{ token:
       )}
 
       {(p.modo === "sposi" || p.modo === "chiuso") && <AreaSposi p={p} />}
+      {(p.modo === "sposi" || p.modo === "chiuso") && (
+        <DatiSposi token={token} modificabile={p.modo === "sposi"} sposi={p.sposi} />
+      )}
 
       <Piede marchio={p.marchio} zone={p.zone} />
     </div>
