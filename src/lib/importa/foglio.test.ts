@@ -11,9 +11,9 @@ export function workbookDiProva(): Uint8Array {
   // 46519 = 12/05/2027 (seriale Excel), 0.625 = 15:00
   ag("Aperti", [
     ["Matrimoni aperti"], intestAperti,
-    ["2027-001", "WDG 2027", "MAT", "Anna e Bruno", 46519, 0.625, 46520, 0.0416667, "Villa Prova", "MN", "", "", "MBA",
+    ["2027-001", "WDG 2027", "MAT", "Anna e Bruno", 46519, 0.625, 46520, 0.0416667, "Villa Prova", "MN", true, "TRUE", "MBA",
       1100, null, null, null, 50, 450, null, 1600, 300],
-    ["2027-002", "QTE Quote", "IGR", "Carla e Dario", "20/06/2027", null, null, null, "Location Nuova", "BS", "", "", "",
+    ["2027-002", "QTE Quote", "IGR", "Carla e Dario", "20/06/2027", null, null, null, "Location Nuova", "BS", false, "", "GBO",
       null, null, null, null, null, null, null, 0, 0],
     ["2027-003-VdM", "QTE Quote", "VDM", "Elena e Fabio", null, null, null, null, "Villa Prova", "MN", "", "", "MBA",
       null, null, null, null, null, null, null, 0, 0],
@@ -97,6 +97,7 @@ describe("lettura del foglio Matrimoni", () => {
     expect(x).toMatchObject({
       stato: "wdg_confermato", fonte: "MAT", data_inizio: "2027-05-12", ora_inizio: "15:00", ora_fine: "01:00",
       videomaker: "MBA", formula: "W-REL-1F", incassato: 30000, codice_legacy: "ab12",
+      memory_box_consegnata: true, recensione_ricevuta: true,
       note_private: "Nota privata: sconto concordato",
     });
     expect(x.importi).toEqual([
@@ -124,6 +125,10 @@ describe("lettura del foglio Matrimoni", () => {
       { giorno: 1, ora: "15:30", fase: "Rito civile", luogo: null, nota_privata: false, ordine: 2 },
       { giorno: 2, ora: "00:30", fase: "Termine presunto del servizio", luogo: null, nota_privata: false, ordine: 3 },
     ]);
+  });
+
+  it("flag MB e REC; GBO diventa CNT Centobraccia", () => {
+    expect(m("2027-002")).toMatchObject({ memory_box_consegnata: false, recensione_ricevuta: false, videomaker: "CNT" });
   });
 
   it("pagina congiunta dal suffisso -VdM", () => {
@@ -154,7 +159,7 @@ describe("lettura del foglio Matrimoni", () => {
     expect(dati.location.map((l) => l.nome)).toEqual(["Villa Prova", "Location Nuova"]);
     expect(resoconto.avvisi).toContain("2027-002: location non presente in Dati, creata solo con il nome");
     expect(dati.collaboratori).toEqual([
-      { codice: "MBA", nome: "Mattia Batalocco", ruolo: "videomaker" }, { codice: "GBO", nome: "GBO", ruolo: "videomaker" },
+      { codice: "MBA", nome: "Mattia Batalocco", ruolo: "videomaker" }, { codice: "CNT", nome: "Centobraccia", ruolo: "videomaker" },
     ]);
   });
 

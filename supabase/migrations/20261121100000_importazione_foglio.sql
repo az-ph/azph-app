@@ -10,6 +10,11 @@ alter table public.collaboratore add column codice text unique;
 
 -- 3. Pagina Sposi: copertina e gallerie proposte (prima in Preventivi: COPERTINA, GALLERIE).
 alter table public.matrimonio add column copertina_url text;
+
+-- 3b. Controlli di Ale (prima colonne MB e REC di Aperti).
+alter table public.matrimonio
+  add column memory_box_consegnata boolean not null default false,
+  add column recensione_ricevuta boolean not null default false;
 comment on column public.matrimonio.galleria_url is 'Gallerie proposte, una per riga: "Titolo | url" oppure solo url.';
 
 -- 4. Importi confermati per voce di riepilogo (prima colonne PHOTO, PRE WDG, PHOTO 2ND, MEMORY BOX, ALBUM… di Aperti).
@@ -77,7 +82,7 @@ begin
   for m in select * from jsonb_array_elements(dati -> 'matrimoni') loop
     insert into public.matrimonio (codice_id, stato, fonte, data_inizio, data_fine, ora_inizio, ora_fine,
       location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, link_upyourshoot,
-      pagina_congiunta, videomaker_id)
+      pagina_congiunta, videomaker_id, memory_box_consegnata, recensione_ricevuta)
     values (
       m ->> 'codice_id', (m ->> 'stato')::stato_matrimonio, m ->> 'fonte',
       (m ->> 'data_inizio')::date, (m ->> 'data_fine')::date, (m ->> 'ora_inizio')::time, (m ->> 'ora_fine')::time,
@@ -86,7 +91,9 @@ begin
       (select id from public.voce_listino where codice = m ->> 'formula'),
       m ->> 'note_private', m ->> 'galleria_url', m ->> 'copertina_url', m ->> 'link_upyourshoot',
       coalesce((m ->> 'pagina_congiunta')::boolean, false),
-      (select id from public.collaboratore where codice = m ->> 'videomaker')
+      (select id from public.collaboratore where codice = m ->> 'videomaker'),
+      coalesce((m ->> 'memory_box_consegnata')::boolean, false),
+      coalesce((m ->> 'recensione_ricevuta')::boolean, false)
     ) returning id into mid;
     n_matrimoni := n_matrimoni + 1;
 

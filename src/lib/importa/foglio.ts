@@ -41,7 +41,13 @@ const OPZIONI: Record<string, string> = {
   "PROPONI VIDEO": "proponi_video", "PROPONI PRE WDG": "proponi_prewedding", "PROPONI OP2 IBRIDO": "proponi_op2_ibrido",
 };
 
-const NOMI_VIDEOMAKER: Record<string, string> = { MBA: "Mattia Batalocco" };
+const NOMI_VIDEOMAKER: Record<string, string> = {
+  ASA: "Alessandra Savi", CNT: "Centobraccia", LAN: "Luca Angolini", MBA: "Mattia Batalocco",
+  MSA: "Mattia Sabbadini", RNY: "Raymon Nyantakyi", SMA: "Simone Mafezzoni",
+};
+// Codici sostituiti (decisione di Ale, 21.11.2026): GBO diventa CNT Centobraccia.
+const CODICE_VIDEOMAKER: Record<string, string> = { GBO: "CNT" };
+const codiceVideo = (c: string) => CODICE_VIDEOMAKER[c] ?? c;
 
 const CATEGORIE: Categoria[] = ["formula", "omaggio", "extra", "prewedding", "album", "replica", "video-base", "video", "duo"];
 
@@ -154,7 +160,7 @@ export function leggiWorkbook(buf: ArrayBuffer | Uint8Array, oggi = new Date().t
       galleria_url: testo(r["GALLERIA"]) || null, copertina_url: testo(r["COPERTINA"]) || null,
     });
   }
-  const codiciVideo = new Set(datiRighe.map((r) => testo(r["VIDEO"])).filter(Boolean));
+  const codiciVideo = new Set(datiRighe.map((r) => codiceVideo(testo(r["VIDEO"]))).filter(Boolean));
 
   // Preventivi, Timeline, Fornitori per ID
   const prevPerId = new Map(leggiFoglio(wb, "Preventivi").filter((r) => !vuota(r["ID"])).map((r) => [testo(r["ID"]), r]));
@@ -198,7 +204,7 @@ export function leggiWorkbook(buf: ArrayBuffer | Uint8Array, oggi = new Date().t
         location.set(nomeLocation, { nome: nomeLocation, comune: null, provincia: testo(w["PROV"]) || null, galleria_url: null, copertina_url: null });
         avvisi.push(`${idFoglio}: location non presente in Dati, creata solo con il nome`);
       }
-      const video = testo(w["VIDEO"]);
+      const video = codiceVideo(testo(w["VIDEO"]));
       if (video) usati.video.add(video);
 
       // Importi confermati: cella vuota = voce assente, 0 = omaggio
@@ -274,6 +280,8 @@ export function leggiWorkbook(buf: ArrayBuffer | Uint8Array, oggi = new Date().t
         link_upyourshoot: testo(p?.["GALLERIA SPOSI"]) || null,
         pagina_congiunta: congiunta,
         videomaker: video || null,
+        memory_box_consegnata: vero(w["MB"]),
+        recensione_ricevuta: vero(w["REC"]),
         sposi, preventivo, importi,
         incassato: euro(w["SALDO"]) ?? 0,
         album,
