@@ -4,10 +4,17 @@
  */
 import impostazioni from "./impostazioni.json";
 import pagina from "./pagina.json";
+import messaggi from "./messaggi.json";
+import { FIRMA_MAIL_HTML } from "./firma-mail";
 
 export const ISTANZA_AZPH = {
-  impostazioni,
+  impostazioni: { ...impostazioni, marchio: { ...impostazioni.marchio, firma_mail_html: FIRMA_MAIL_HTML } },
   blocchi: pagina,
+  messaggi,
+  // Contatti dei collaboratori (per codice): servono alle mail di conferma.
+  collaboratori: [
+    { codice: "MBA", email: "videomaker.mattiabatalocco@gmail.com", telefono: "+39 393 598 9345" },
+  ],
   contratto: `# Contratto di servizio fotografico di Matrimonio
 
 Tra Alessandro Zaniboni, fotografo professionista, con sede in Via Don Vito Bignotti 3 - 46014 Castellucchio MN, C.F. ZNBLSN79B22D150K, P.IVA IT02595690203, di seguito denominato “Fotografo”, e gli Sposi i cui dati sono indicati al momento della conferma, di seguito denominati congiuntamente “Clienti”, si conviene e stipula quanto segue.

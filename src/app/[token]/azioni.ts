@@ -7,6 +7,8 @@ import { z } from "zod";
 import { supabaseServizio } from "@/lib/supabase/server";
 import { caricaPagina, matrimonioDaToken, registraEvento } from "@/lib/sposi/dati";
 import { calcolaOfferta, selezione, importiConferma, ErroreSelezione } from "@/lib/listino/motore";
+import { mailConferma } from "@/lib/mail/conferma";
+import { euro } from "@/lib/formato";
 
 const Sposo = z.object({
   nome: z.string().trim().min(2).max(120),
@@ -92,6 +94,37 @@ export async function conferma(token: string, input: unknown): Promise<EsitoConf
   if (error) {
     return { errore: error.message.includes("già confermato") ? "La conferma risulta già registrata." : "Non sono riuscito a registrare la conferma. Riprovate tra poco o scrivetemi." };
   }
+
+  // Mail agli Sposi e notifica: se falliscono la conferma resta valida (l'esito arriva nella notifica).
+  // Indirizzo del sito da Netlify (URL = dominio principale), non dall'intestazione della richiesta.
+  const base = (process.env.URL || `https://${h.get("host") ?? ""}`).replace(/\/$/, "");
+  try {
+    await mailConferma({
+      matrimonioId: mid,
+      preventivoId: calcolo.preventivoId,
+      codice: pagina.matrimonio.codice,
+      nomi: pagina.nomi || nomi,
+      dataInizio: pagina.matrimonio.dataInizio,
+      location: pagina.matrimonio.location,
+      link: `${base}/${token}`,
+      congiunta: pagina.matrimonio.paginaCongiunta,
+      righeFoto: [
+        [offerta.formula || "Servizio fotografico", euro(offerta.servizio.prezzo)],
+        ...offerta.voci.filter((v) => v.categoria === "omaggio").map((v): [string, string] => [v.voce, "omaggio"]),
+        ...sel.foto.map((x): [string, string] => [x.etichetta.replace(/ \(omaggio\)$/, ""), x.totale ? euro(x.totale) : "omaggio"]),
+      ],
+      totaleFoto: imp.totaleFoto,
+      video: sel.video.map((x) => ({ etichetta: x.etichetta, totale: x.totale })),
+      totaleVideo: imp.totaleVideo,
+      videomakerCodice: sel.video[0]?.collaboratore ?? offerta.voci.find((v) => v.collaboratore)?.collaboratore ?? null,
+      sposi: d.sposi,
+      consensoPromo: d.consensoPromo,
+      note: d.note,
+    });
+  } catch {
+    console.error("Mail di conferma: errore imprevisto");
+  }
+
   revalidatePath(`/${token}`);
   return { ok: true };
 }
