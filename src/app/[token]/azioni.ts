@@ -144,15 +144,23 @@ export async function traccia(token: string, codice: string, attiva: boolean): P
 }
 
 const Indirizzi = z.object({
-  sposi: z.array(z.object({ indirizzo_preparativi: z.string().trim().max(300) })).length(2),
+  sposi: z.array(z.object({
+    indirizzo_preparativi: z.string().trim().max(300),
+    // facoltativo: solo se lo reinseriscono (in pagina è mostrato in parte)
+    codice_fiscale: z.string().trim().transform((s) => s.replace(/\s/g, "").toUpperCase())
+      .pipe(z.string().regex(/^([A-Z0-9]{16})?$/)).optional().default(""),
+  })).length(2),
 });
 
-/** Area Sposi: gli Sposi inseriscono o correggono l'indirizzo dei preparativi. */
+/** Area Sposi: gli Sposi inseriscono l'indirizzo dei preparativi e possono reinserire il codice fiscale. */
 export async function salvaIndirizzi(token: string, input: unknown): Promise<{ ok?: true; errore?: string }> {
   const mid = await matrimonioDaToken(token);
   if (!mid) return { errore: "Link non valido." };
   const dati = Indirizzi.safeParse(input);
-  if (!dati.success) return { errore: "Controllate gli indirizzi." };
+  if (!dati.success) {
+    return { errore: dati.error.issues.some((i) => i.path.includes("codice_fiscale"))
+      ? "Il codice fiscale deve avere 16 caratteri." : "Controllate gli indirizzi." };
+  }
 
   const { pagina } = await caricaPagina(mid);
   if (pagina.modo !== "sposi") return { errore: "I dati non sono più modificabili da qui: scrivetemi pure." };
@@ -160,7 +168,7 @@ export async function salvaIndirizzi(token: string, input: unknown): Promise<{ o
   const db = supabaseServizio();
   for (const [i, s] of dati.data.sposi.entries()) {
     const { error } = await db.from("sposo")
-      .update({ indirizzo_preparativi: s.indirizzo_preparativi || null })
+      .update({ indirizzo_preparativi: s.indirizzo_preparativi || null, ...(s.codice_fiscale ? { codice_fiscale: s.codice_fiscale } : {}) })
       .eq("matrimonio_id", mid).eq("ordine", i + 1);
     if (error) return { errore: "Salvataggio non riuscito, riprovate tra poco." };
   }
