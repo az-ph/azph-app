@@ -1,0 +1,53 @@
+[
+  {
+    "chiave": "mi-presento", "ordine": 10, "quando": "preventivo",
+    "sopratitolo": "About me", "titolo": "Mi presento",
+    "corpo": "Dal **2018** fotografo Matrimoni. Sono di base a Mantova e lavoro principalmente in Lombardia e Veneto - ma seguo coppie in **tutta Italia**, quando c’è una storia che vale la pena fermare nel tempo.\n\nCon **oltre 160 Matrimoni all’attivo** posso definirmi un professionista del settore, ma non per questo mi sento arrivato. Ogni coppia è diversa, ogni giornata è unica, e mi avvicino a ciascuna con lo stesso **entusiasmo** di quando ho iniziato e con l’**empatia** che mi contraddistingue.\n\nHo un background scientifico, diverso da quello che faccio ora, da cui ho appreso la metodicità e l’**attenzione ai particolari** che porto in ogni progetto.\n\nEd è così che lavoro: **pensando ogni foto, ma scattando con il cuore**."
+  },
+  {
+    "chiave": "reportage", "ordine": 20, "quando": "preventivo", "banda": true, "gallerie": true,
+    "sopratitolo": "Wedding day", "titolo": "Un reportage con l’anima",
+    "corpo": "Ogni Matrimonio è una storia a sé. Il mio lavoro è raccontarla nel modo più **autentico** possibile: con **discrezione, naturalezza, senza pose forzate**. Non cerco la perfezione - cerco la verità del momento.\n\nMi muovo tra gli Sposi e i loro ospiti come una presenza silenziosa, alla costante ricerca dell’attimo in cui la spontaneità del reportage si fonde con l’intensità di un ritratto. Non mi fermo solo agli Sposi: racconto le **emozioni** degli invitati, i **dettagli**, i piccoli **momenti** irripetibili - uno sguardo, una risata, una lacrima trattenuta - che insieme costruiscono il racconto della vostra giornata.\n\nNon dimentico le **foto “classiche”** - quelle ci sono, sempre - e mi piace anche creare qualche breve spazio di complicità tra gli Sposi, **senza pressioni o forzature**. L’unica cosa che chiedo è di vivere ogni momento appieno. Al resto ci penso io.\n\n**Al vostro Matrimonio ci sarò io**, non un collaboratore. Solo quando la giornata lo richiede affianco un secondo fotografo - ma la direzione, gli scatti principali e tutta la post-produzione le gestisco sempre e solo io."
+  },
+  {
+    "chiave": "come-lavoro", "ordine": 30, "quando": "preventivo",
+    "sopratitolo": "Una timeline senza sorprese", "titolo": "Come lavoro",
+    "passi": [
+      ["Primo contatto", "Ci sentiamo - una telefonata, o meglio un incontro - per capire come immaginate la giornata e costruire insieme il preventivo."],
+      ["Preventivo", "Lo trovate in questa pagina, costruito su misura per voi: il Servizio Fotografico è la voce principale, a cui potete aggiungere gli opzionali che preferite. Intanto la data è opzionata."],
+      ["Conferma", "Sono disponibile per qualsiasi chiarimento o modifica. Quando siete pronti, confermate direttamente in fondo alla pagina: nessuna caparra, la data è vostra."],
+      ["Kick-off meeting", "Due o tre settimane prima ci vediamo per coordinarci su orari, fornitori e aspettative. In questa occasione chiedo l’acconto del 50% dei servizi."],
+      ["Wedding day", "Pensate solo a viverlo. Ci sarò io, discreto e costante, a raccontare ogni momento."],
+      ["Post produzione e consegna", "Selezione e post-produzione le curo personalmente. Entro 6 mesi ricevete tutte le immagini in alta risoluzione tramite link privato UpYourShoot - e su Memory Box, se la scegliete. Con la consegna chiedo il saldo."],
+      ["Album o altre stampe", "Se lo desiderate, vi guido nella selezione delle foto e nella scelta della copertina."]
+    ]
+  },
+  {
+    "chiave": "servizio", "ordine": 40, "quando": "preventivo",
+    "sopratitolo": "Wedding reportage", "titolo": "Photo",
+    "corpo": "Il Servizio Fotografico è la **voce principale del preventivo**. Vi garantisce la mia presenza - continua e discreta - per tutta la giornata, secondo la timetable che condivideremo insieme.\n\nGli orari sono naturalmente **flessibili**: mi coordino con gli altri Fornitori e mi adatto all’andamento della giornata.\n\n**La quotazione include** la selezione delle foto, la post-produzione - curata personalmente da me - e la consegna in alta risoluzione.",
+    "inclusi": [
+      "Consegna di un pacchetto di **10 foto “Just Married Kit” entro 5 gg** dall’evento",
+      "**Selezione e post produzione** delle foto - minimo 700",
+      "Consegna tramite **link web privato UpYourShoot** temporaneo (tre mesi; alta definizione per gli Sposi, websize con watermark per amici e parenti)"
+    ]
+  },
+  {
+    "chiave": "servizio-duo", "ordine": 40, "quando": "preventivo_duo",
+    "sopratitolo": "Il pacchetto", "titolo": "Foto + Video",
+    "corpo": "Il pacchetto comprende il **servizio fotografico** e il **servizio video** per tutta la giornata, secondo la timetable che condivideremo insieme.\n\nGli orari sono naturalmente **flessibili**: ci coordiniamo con gli altri Fornitori e ci adattiamo all’andamento della giornata.\n\nPotete sceglierci anche singolarmente. Insieme, però, avete due vantaggi: **ci conosciamo e sappiamo lavorare fianco a fianco**, e il **prezzo di pacchetto** è più conveniente dei due servizi presi separatamente."
+  },
+  {
+    "chiave": "opzionali", "ordine": 50, "quando": "preventivo",
+    "sopratitolo": "Opzionale", "titolo": "Rendetelo vostro", "corpo": ""
+  },
+  {
+    "chiave": "album", "ordine": 60, "quando": "preventivo", "banda": true,
+    "sopratitolo": "Opzionale", "titolo": "Wedding album", "corpo": ""
+  },
+  {
+    "chiave": "area-sposi", "ordine": 40, "quando": "sposi",
+    "sopratitolo": "Area Sposi", "titolo": "Il vostro Matrimonio",
+    "corpo": "Qui trovate sempre aggiornati **timeline**, **servizi** e **pagamenti** del vostro Matrimonio."
+  }
+]

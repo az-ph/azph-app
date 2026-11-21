@@ -20,6 +20,8 @@ export interface VoceListino {
   soloSe?: string;
   /** Voce del riepilogo importi (equivale a COLONNA APERTI): "servizio", "memory_box", "secondo_operatore"… */
   riepilogo?: string;
+  /** Codice del collaboratore che eroga la voce (es. il videomaker). Vuoto = il fotografo. */
+  collaboratore?: string;
   attiva?: boolean;
 }
 

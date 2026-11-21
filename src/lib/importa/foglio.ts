@@ -5,6 +5,7 @@
  */
 import * as XLSX from "xlsx";
 import { euroInCentesimi, leggiPrezziSpeciali, type Categoria } from "@/lib/listino/motore";
+import { nuovoToken } from "@/lib/token";
 
 type Cella = string | number | boolean | null;
 type Riga = Record<string, Cella> & { _n: number };
@@ -138,6 +139,8 @@ export function leggiWorkbook(buf: ArrayBuffer | Uint8Array, oggi = new Date().t
       solo_se: soloSe.join(",") || null,
       riepilogo: RIEPILOGO_DA_COLONNA[testo(r["COLONNA APERTI"]).toUpperCase()] ??
         (categoria === "formula" ? "servizio" : null),
+      // Oggi i pacchetti video del listino sono tutti di Mattia Batalocco.
+      collaboratore: categoria === "video" || categoria === "video-base" ? "MBA" : null,
       attiva: !(r["ATTIVO"] === false || testo(r["ATTIVO"]).toUpperCase() === "FALSE"),
       ordine: i,
     };
@@ -290,6 +293,7 @@ export function leggiWorkbook(buf: ArrayBuffer | Uint8Array, oggi = new Date().t
         album,
         timeline: timeline.filter((t) => !t.nota_privata),
         fornitori: fornitoriPerId.get(idFoglio) ?? [],
+        token: nuovoToken(),
         codice_legacy: legacy || null,
         legacy_scade_il: legacy && stato.startsWith("clo") ? piuGiorni(oggi, 90) : null,
       });
