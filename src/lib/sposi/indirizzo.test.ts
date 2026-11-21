@@ -12,9 +12,10 @@ describe("indirizzi e campi obbligatori", () => {
     expect(indirizzoValido({ via: "Via Roma 1", cap: "461", loc: "Mantova", prov: "MN" })).toBe(false);
   });
   it("elenca i campi mancanti, spunta compresa", () => {
-    const ok = { nome: "Anna Rossi", telefono: "333 1234567", email: "a@b.it", codice_fiscale: "RSSNNA90A41E897X" };
+    const residenza = { via: "Via Roma 1", cap: "46100", loc: "Mantova", prov: "MN" };
+    const ok = { nome: "Anna Rossi", telefono: "333 1234567", email: "a@b.it", codice_fiscale: "RSSNNA90A41E897X", residenza };
     expect(campiMancanti([ok, ok], true)).toEqual([]);
-    const m = campiMancanti([ok, { ...ok, telefono: "", codice_fiscale: "abc" }], false).map((x) => x.chiave);
-    expect(m).toEqual(["1.telefono", "1.codice_fiscale", "accetto"]);
+    const m = campiMancanti([ok, { ...ok, telefono: "", codice_fiscale: "abc", residenza: { ...residenza, cap: "" } }], false).map((x) => x.chiave);
+    expect(m).toEqual(["1.telefono", "1.codice_fiscale", "1.residenza", "accetto"]);
   });
 });

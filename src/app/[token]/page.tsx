@@ -9,7 +9,7 @@ import { data, ora } from "@/lib/formato";
 import { Paragrafi, Evidenzia, Contratto, Euro, euroTesto } from "./testo";
 import { Preventivo } from "./preventivo";
 import { Piede } from "./piede";
-import { Indirizzi } from "./indirizzi";
+import { DatiSposi } from "./indirizzi";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Il vostro Matrimonio", robots: { index: false, follow: false } };
@@ -91,7 +91,6 @@ export default async function PaginaSposi({ params, searchParams }: {
           <div className="wrap">
             <h2>Grazie, il Matrimonio è confermato</h2>
             <p>La data è vostra! Vi ho mandato una mail con il riepilogo. Da questo stesso link trovate sempre timeline, servizi e pagamenti aggiornati: salvatelo tra i preferiti.</p>
-            {p.sposi.some((s) => !s.indirizzo) && <p><a href="#azp-dati">Completate i vostri indirizzi</a> quando volete.</p>}
           </div>
         </section>
       )}
@@ -177,8 +176,7 @@ export default async function PaginaSposi({ params, searchParams }: {
 
       {(p.modo === "sposi" || p.modo === "chiuso") && <AreaSposi p={p} />}
       {(p.modo === "sposi" || p.modo === "chiuso") && (
-        <Indirizzi token={token} modificabile={p.modo === "sposi"}
-          sposi={p.sposi.map((s) => ({ nome: s.nome, indirizzo: s.indirizzo, indirizzo_preparativi: s.indirizzo_preparativi }))} />
+        <DatiSposi token={token} modificabile={p.modo === "sposi"} sposi={p.sposi} />
       )}
 
       <Piede marchio={p.marchio} zone={p.zone} />

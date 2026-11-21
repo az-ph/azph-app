@@ -2,7 +2,7 @@
   {
     "chiave": "conferma_sposi",
     "oggetto": "Conferma servizio fotografico - Matrimonio del {DATA_ESTESA}",
-    "corpo_mail": "Ciao {NOMI},\ngrazie per avermi scelto: il {DATA_ESTESA} è ufficialmente in agenda, la data è vostra!\n\nEcco il riepilogo di quanto avete confermato:\n{RIEPILOGO}\n{VIDEO}\n**Prossimi passi:** due o tre settimane prima del Matrimonio ci vediamo per il kick-off meeting, in cui definiamo insieme orari e dettagli. In quell'occasione è previsto l'acconto del 50% dei servizi, il saldo alla consegna delle foto; l'eventuale Album si salda a parte, alla consegna.\n\nDa oggi la vostra pagina diventa la vostra area Sposi: timeline, riepilogo dei servizi e pagamenti, sempre aggiornati. Vi consiglio di salvarla tra i preferiti.\n[!Vai alla vostra area Sposi]({LINK})\n\nPer qualsiasi cosa scrivetemi pure, anche rispondendo a questa mail.\n\nA presto\n{FIRMA}"
+    "corpo_mail": "Ciao {NOMI},\ngrazie per avermi scelto: il {DATA_ESTESA} è ufficialmente in agenda, la data è vostra!\n\nEcco il riepilogo di quanto avete confermato:\n{RIEPILOGO}\n{VIDEO}\n**Prossimi passi:** due o tre settimane prima del Matrimonio ci vediamo per il kick-off meeting, in cui definiamo insieme orari e dettagli. In quell'occasione è previsto l'acconto del 50% dei servizi, il saldo alla consegna delle foto; l'eventuale Album si salda a parte, alla consegna.\n\nDa oggi la vostra pagina diventa la vostra area Sposi: timeline, riepilogo dei servizi e pagamenti, sempre aggiornati. Vi consiglio di salvarla tra i preferiti.\n[!Vai alla vostra area Sposi]({LINK})\nIl link completo della vostra pagina: {LINK}\n\nPer qualsiasi cosa scrivetemi pure, anche rispondendo a questa mail.\n\nA presto\n{FIRMA}"
   },
   {
     "chiave": "conferma_video",

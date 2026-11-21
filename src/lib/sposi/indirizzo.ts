@@ -18,7 +18,7 @@ export function indirizzoValido(i: Indirizzo): boolean {
 }
 
 /** Campi obbligatori della conferma: restituisce le etichette di quelli mancanti o non validi. */
-export type SposoForm = { nome: string; telefono: string; email: string; codice_fiscale: string };
+export type SposoForm = { nome: string; telefono: string; email: string; codice_fiscale: string; residenza: Indirizzo };
 export function campiMancanti(sposi: SposoForm[], accetto: boolean): { chiave: string; etichetta: string }[] {
   const out: { chiave: string; etichetta: string }[] = [];
   sposi.forEach((s, i) => {
@@ -27,6 +27,7 @@ export function campiMancanti(sposi: SposoForm[], accetto: boolean): { chiave: s
     if (s.telefono.replace(/\D/g, "").length < 6) out.push({ chiave: `${i}.telefono`, etichetta: `telefono (${chi})` });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email.trim())) out.push({ chiave: `${i}.email`, etichetta: `email (${chi})` });
     if (!/^[A-Z0-9]{16}$/.test(s.codice_fiscale.replace(/\s/g, "").toUpperCase())) out.push({ chiave: `${i}.codice_fiscale`, etichetta: `codice fiscale di 16 caratteri (${chi})` });
+    if (!unisciIndirizzo(s.residenza) || !indirizzoValido(s.residenza)) out.push({ chiave: `${i}.residenza`, etichetta: `indirizzo di residenza completo (${chi})` });
   });
   if (!accetto) out.push({ chiave: "accetto", etichetta: "la spunta di conferma delle condizioni" });
   return out;

@@ -313,3 +313,7 @@
 #azp #azp-dati .campo input:disabled,#azp #azp-dati .campo select:disabled{background:var(--tinta)}
 #azp section p.salvato{color:var(--verde-scuro);margin-top:1rem;text-align:left}
 #azp #azp-dati .campo input,#azp #azp-dati .campo select{border:1px solid #ccc}
+#azp .dati-sposo{margin:.5rem 0 1rem}
+#azp .dati-sposo div{display:flex;justify-content:space-between;gap:1rem;padding:.45rem 0;border-bottom:1px solid #ddd}
+#azp .dati-sposo dt{opacity:.75}
+#azp .dati-sposo dd{margin:0;text-align:right;overflow-wrap:anywhere}

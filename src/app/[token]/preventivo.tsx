@@ -5,7 +5,7 @@ import { selezione, importiConferma, type Offerta, type VoceOfferta, ErroreSelez
 import { conferma, traccia } from "./azioni";
 import { Contratto, Euro, Evidenzia, Paragrafi, euroTesto } from "./testo";
 import type { Blocco } from "@/lib/sposi/componi";
-import { campiMancanti } from "@/lib/sposi/indirizzo";
+import { PROVINCE, campiMancanti, dividiIndirizzo, unisciIndirizzo, type Indirizzo } from "@/lib/sposi/indirizzo";
 
 type SposoDati = { nome: string; telefono: string; email: string; codice_fiscale: string; indirizzo: string; indirizzo_preparativi: string };
 
@@ -231,6 +231,7 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
     const s = props.sposi[i];
     return {
       nome: s?.nome ?? "", telefono: s?.telefono ?? "", email: s?.email ?? "", codice_fiscale: s?.codice_fiscale ?? "",
+      residenza: dividiIndirizzo(s?.indirizzo ?? ""),
     };
   };
   const [sposi, setSposi] = useState(() => [iniziale(0), iniziale(1)]);
@@ -271,6 +272,7 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
         extra: [...props.scelti], qta: props.qta, video: props.video, conVideo: props.conVideo,
         sposi: sposi.map((s) => ({
           nome: s.nome, telefono: s.telefono, email: s.email, codice_fiscale: s.codice_fiscale,
+          indirizzo: unisciIndirizzo(s.residenza),
         })),
         consensoPromo: consenso, note, accetto,
       });
@@ -302,6 +304,25 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
       </label>
     );
   };
+  const campoResidenza = (i: number) => {
+    const v = sposi[i].residenza;
+    const manca = mancanti.has(`${i}.residenza`);
+    const set = (patch: Partial<Indirizzo>) => aggiornaEControlla(i, { residenza: { ...v, ...patch } });
+    return (
+      <div className={`campo ind${manca ? " manca" : ""}`}><span>Indirizzo di residenza <abbr className="obb" title="obbligatorio">*</abbr></span>
+        <div className="ind-griglia">
+          <input type="text" placeholder="Via e numero civico" required aria-invalid={manca || undefined} data-campo={`${i}.residenza`}
+            autoComplete={i === 0 ? "street-address" : "off"} value={v.via} onChange={(e) => set({ via: e.target.value })} />
+          <input type="text" placeholder="CAP" inputMode="numeric" maxLength={5} required value={v.cap} onChange={(e) => set({ cap: e.target.value })} />
+          <input type="text" placeholder="Località" required value={v.loc} onChange={(e) => set({ loc: e.target.value })} />
+          <select aria-label="Provincia" required value={v.prov} onChange={(e) => set({ prov: e.target.value })}>
+            <option value="">Prov.</option>{PROVINCE.map((p) => <option key={p}>{p}</option>)}<option value="EE">Estero</option>
+          </select>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <section className="conferma" id="azp-conferma">
       <div className="wrap">
@@ -334,7 +355,7 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
               <Contratto testo={props.contratto} />
             </details>
             <p>Per preparare il contratto mi servono i vostri dati. Alla conferma non è richiesto alcun versamento.</p>
-            <p className="nota-obb"><abbr className="obb" title="obbligatorio">*</abbr> campo obbligatorio. Gli indirizzi li inserirete dopo, nella vostra area Sposi.</p>
+            <p className="nota-obb"><abbr className="obb" title="obbligatorio">*</abbr> campo obbligatorio. L’indirizzo dei preparativi lo inserirete più avanti, nella vostra area Sposi.</p>
             <div className="sposi">
               {[0, 1].map((i) => (
                 <fieldset key={i}>
@@ -343,6 +364,7 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
                   {campoTesto(i, "telefono", "Telefono", "tel", "tel")}
                   {campoTesto(i, "email", "Email", "email", "email")}
                   {campoTesto(i, "codice_fiscale", "Codice fiscale", "text", "off")}
+                  {campoResidenza(i)}
                 </fieldset>
               ))}
             </div>

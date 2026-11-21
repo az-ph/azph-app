@@ -16,12 +16,12 @@ const Sposo = z.object({
   email: z.email().max(200),
   codice_fiscale: z.string().trim().transform((s) => s.replace(/\s/g, "").toUpperCase())
     .pipe(z.string().regex(/^[A-Z0-9]{16}$/, "Il codice fiscale deve avere 16 caratteri.")),
-  // gli indirizzi si inseriscono dopo, nell'area Sposi
-  indirizzo: z.string().trim().max(300).optional().default(""),
+  indirizzo: z.string().trim().min(5).max(300),
+  // l'indirizzo dei preparativi si inserisce più avanti, nell'area Sposi
   indirizzo_preparativi: z.string().trim().max(300).optional().default(""),
 });
 
-const ETICHETTE: Record<string, string> = { nome: "nome e cognome", telefono: "telefono", email: "email", codice_fiscale: "codice fiscale di 16 caratteri" };
+const ETICHETTE: Record<string, string> = { nome: "nome e cognome", telefono: "telefono", email: "email", codice_fiscale: "codice fiscale di 16 caratteri", indirizzo: "indirizzo di residenza" };
 
 const Conferma = z.object({
   extra: z.array(z.string().max(64)).max(50),
@@ -144,13 +144,10 @@ export async function traccia(token: string, codice: string, attiva: boolean): P
 }
 
 const Indirizzi = z.object({
-  sposi: z.array(z.object({
-    indirizzo: z.string().trim().max(300),
-    indirizzo_preparativi: z.string().trim().max(300),
-  })).length(2),
+  sposi: z.array(z.object({ indirizzo_preparativi: z.string().trim().max(300) })).length(2),
 });
 
-/** Area Sposi: gli Sposi completano o correggono gli indirizzi dopo la conferma. */
+/** Area Sposi: gli Sposi inseriscono o correggono l'indirizzo dei preparativi. */
 export async function salvaIndirizzi(token: string, input: unknown): Promise<{ ok?: true; errore?: string }> {
   const mid = await matrimonioDaToken(token);
   if (!mid) return { errore: "Link non valido." };
@@ -163,7 +160,7 @@ export async function salvaIndirizzi(token: string, input: unknown): Promise<{ o
   const db = supabaseServizio();
   for (const [i, s] of dati.data.sposi.entries()) {
     const { error } = await db.from("sposo")
-      .update({ indirizzo: s.indirizzo || null, indirizzo_preparativi: s.indirizzo_preparativi || null })
+      .update({ indirizzo_preparativi: s.indirizzo_preparativi || null })
       .eq("matrimonio_id", mid).eq("ordine", i + 1);
     if (error) return { errore: "Salvataggio non riuscito, riprovate tra poco." };
   }
