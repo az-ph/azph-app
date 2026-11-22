@@ -327,3 +327,9 @@
 #azp .box-servizio .prezzo small{color:var(--verde-scuro)}
 #azp .box-servizio .barrato{display:block}
 #azp .riga-preventivo{font-size:.85em;opacity:.8;margin:.9rem 0 0;text-align:center}
+/* Box uguali in Rendetelo vostro, Wedding album e Video: righe a tutta larghezza, verde scuro se scelte */
+#azp .opzioni,#azp .opzioni.due{grid-template-columns:minmax(0,1fr)!important}
+#azp .opz[aria-pressed="true"],#azp .banda .opz[aria-pressed="true"],#azp .gruppo .opz[aria-pressed="true"],#azp .opz.on{background:var(--verde-scuro)!important;color:#fff}
+#azp .opz[aria-pressed="true"] *,#azp .opz.on .voce,#azp .opz.on .euro,#azp .opz.on .euro *,#azp .opz.on .desc,#azp .opz.on .stato,#azp .opz.on output{color:#fff}
+#azp .opz.on .qta button{background:#fff;color:var(--antracite)}
+#azp .opz[aria-pressed="true"]:hover{box-shadow:inset 0 0 0 2px var(--antracite)}
