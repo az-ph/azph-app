@@ -337,3 +337,6 @@
 #azp .opz.fisso,#azp .banda .opz.fisso,#azp .gruppo .opz.fisso{background:var(--verde-scuro)!important;color:#fff;box-shadow:none}
 #azp .opz.fisso *{color:#fff}
 #azp .opz.fisso:hover{box-shadow:none}
+/* riepilogo della conferma: largo come il modulo, importi mai spezzati */
+#azp .riepilogo{max-width:52rem}
+#azp .riepilogo li > span:last-child{white-space:nowrap;flex:none}
