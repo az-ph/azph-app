@@ -8,6 +8,7 @@ import { supabaseServizio } from "@/lib/supabase/server";
 import { caricaPagina, matrimonioDaToken, registraEvento } from "@/lib/sposi/dati";
 import { calcolaOfferta, selezione, importiConferma, righeRiepilogo, ErroreSelezione } from "@/lib/listino/motore";
 import { mailConferma } from "@/lib/mail/conferma";
+import { nomiSposi } from "@/lib/sposi/componi";
 import { euro } from "@/lib/formato";
 
 const Sposo = z.object({
@@ -110,7 +111,8 @@ export async function conferma(token: string, input: unknown): Promise<EsitoConf
       matrimonioId: mid,
       preventivoId: calcolo.preventivoId,
       codice: pagina.matrimonio.codice,
-      nomi: pagina.nomi || nomi,
+      // i nomi appena inseriti nel modulo, non quelli salvati prima della conferma
+      nomi: nomiSposi(d.sposi) || pagina.nomi,
       dataInizio: pagina.matrimonio.dataInizio,
       location: pagina.matrimonio.location,
       link: `${base}/${token}`,
@@ -129,7 +131,7 @@ export async function conferma(token: string, input: unknown): Promise<EsitoConf
     console.error("Mail di conferma: errore imprevisto");
   }
 
-  revalidatePath(`/${token}`);
+  // niente revalidatePath: il browser ricarica la pagina da capo (?confermato=1)
   return { ok: true };
 }
 

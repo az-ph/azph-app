@@ -95,7 +95,7 @@ export default async function PaginaSposi({ params, searchParams }: {
       </header>
 
       {appenaConfermato && p.modo === "sposi" && (
-        <section className="grazie" role="status">
+        <section className="grazie" id="azp-grazie" role="status">
           <div className="wrap">
             <h2>Grazie, il Matrimonio è confermato</h2>
             <p>La data è vostra! Vi ho mandato una mail con il riepilogo. Da questo stesso link trovate sempre timeline, servizi e pagamenti aggiornati: salvatelo tra i preferiti.</p>
