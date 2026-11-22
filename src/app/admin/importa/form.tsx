@@ -6,27 +6,27 @@ import { importa, type EsitoImport } from "./azioni";
 export function FormImporta() {
   const [esito, azione, inCorso] = useActionState<EsitoImport, FormData>(importa, {});
   return (
-    <div className="space-y-6">
+    <div className="f-carta p-5 sm:p-6 space-y-6">
       <form action={azione} className="space-y-4">
-        <input name="file" type="file" accept=".xlsx" required className="block" />
+        <input name="file" type="file" accept=".xlsx" required className="block text-sm file:mr-3 file:rounded-[10px] file:border file:border-bordo file:bg-carta file:text-testo file:px-3 file:py-1.5" />
         <div className="flex gap-3">
           <button name="azione" value="prova" disabled={inCorso}
-            className="px-4 py-2 rounded border border-salvia-scuro text-salvia-scuro disabled:opacity-60">
+            className="f-btn">
             {inCorso ? "Lettura…" : "Prova (non scrive niente)"}
           </button>
           <button name="azione" value="importa" disabled={inCorso || !esito.prova}
             title={esito.prova ? "" : "Prima fai la prova con lo stesso file"}
-            className="px-4 py-2 rounded bg-salvia-scuro text-white disabled:opacity-40">
+            className="f-btn f-btn-pieno">
             Importa
           </button>
         </div>
-        <p className="text-xs text-neutral-600">Per importare, ricarica lo stesso file dopo la prova.</p>
+        <p className="text-xs text-tenue">Per importare, ricarica lo stesso file dopo la prova.</p>
       </form>
 
-      {esito.errore && <p className="text-red-700">{esito.errore}</p>}
+      {esito.errore && <p className="text-errore">{esito.errore}</p>}
 
       {esito.importato && (
-        <div className="p-4 rounded bg-salvia-chiaro">
+        <div className="p-4 rounded-[12px] bg-ok-fondo">
           <p className="font-medium mb-2">Importazione completata.</p>
           <Tabella valori={esito.importato} />
         </div>
@@ -34,7 +34,7 @@ export function FormImporta() {
 
       {esito.resoconto && (
         <div className="space-y-4">
-          <h2 className="font-serif text-xl">{esito.prova ? "Prova: cosa verrebbe importato" : "Letto dal file"}</h2>
+          <h2 className="text-[0.9375rem] font-semibold">{esito.prova ? "Prova: cosa verrebbe importato" : "Letto dal file"}</h2>
           <Tabella valori={esito.resoconto.conteggi} />
           <h3 className="font-medium">Avvisi ({esito.resoconto.avvisi.length})</h3>
           {esito.resoconto.avvisi.length === 0 ? <p className="text-sm">Nessuno.</p> : (

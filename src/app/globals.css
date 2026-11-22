@@ -9,7 +9,28 @@
   --font-serif: "Playfair Display", Georgia, serif;
 }
 
-/* L'area admin resta chiara anche con il tema scuro del sistema */
+/* Colori dell'area admin: valgono dentro .fede (vedi admin/admin.css), chiaro o scuro */
+@theme inline {
+  --color-fondo: var(--f-fondo);
+  --color-pannello: var(--f-pannello);
+  --color-carta: var(--f-carta);
+  --color-bordo: var(--f-bordo);
+  --color-testo: var(--f-testo);
+  --color-tenue: var(--f-tenue);
+  --color-attivo: var(--f-attivo);
+  --color-morbido: var(--f-morbido);
+  --color-accento: var(--f-accento);
+  --color-su-accento: var(--f-su-accento);
+  --color-ok: var(--f-ok);
+  --color-ok-fondo: var(--f-ok-fondo);
+  --color-avviso: var(--f-avviso);
+  --color-avviso-fondo: var(--f-avviso-fondo);
+  --color-errore: var(--f-errore);
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-titolo: "Space Grotesk", "Inter", system-ui, sans-serif;
+}
+
+/* Le pagine pubbliche restano chiare anche con il tema scuro del sistema */
 :root { color-scheme: light; }
 
 body {
