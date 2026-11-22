@@ -278,8 +278,10 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
       });
       if (r.ok) {
         props.onConfermato();
-        // la pagina diventa l'area Sposi, con il messaggio di benvenuto in alto
-        location.replace(`${location.pathname}?confermato=1`);
+        // la pagina diventa l'area Sposi, ricaricata da capo e dall'inizio, con il messaggio di benvenuto
+        history.scrollRestoration = "manual";
+        window.scrollTo(0, 0);
+        location.replace(`${location.pathname}?confermato=1#azp-grazie`);
       } else setErrore(r.errore ?? "Errore");
     });
   }
