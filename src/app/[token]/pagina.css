@@ -333,3 +333,7 @@
 #azp .opz[aria-pressed="true"] *,#azp .opz.on .voce,#azp .opz.on .euro,#azp .opz.on .euro *,#azp .opz.on .desc,#azp .opz.on .stato,#azp .opz.on output{color:#fff}
 #azp .opz.on .qta button{background:#fff;color:var(--antracite)}
 #azp .opz[aria-pressed="true"]:hover{box-shadow:inset 0 0 0 2px var(--antracite)}
+/* inclusi e omaggi (non si possono togliere): verde scuro come le voci scelte */
+#azp .opz.fisso,#azp .banda .opz.fisso,#azp .gruppo .opz.fisso{background:var(--verde-scuro)!important;color:#fff;box-shadow:none}
+#azp .opz.fisso *{color:#fff}
+#azp .opz.fisso:hover{box-shadow:none}
