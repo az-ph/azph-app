@@ -202,6 +202,17 @@ export default async function PaginaSposi({ params, searchParams }: {
   );
 }
 
+/** Ordine delle voci quando non ci sono le righe della conferma (Matrimoni importati dal foglio). */
+const ORDINE = ["servizio", "prewedding", "secondo_operatore", "photo_booth", "memory_box", "album", "album_genitori"];
+
+/** Righe del riepilogo: quelle salvate alla conferma (con omaggi e prezzi di allora), altrimenti gli importi per voce. */
+function righeServizi(p: Pagina): { voce: string; importo: number }[] {
+  const salvate = p.preventivo?.righe ?? [];
+  if (salvate.length) return salvate;
+  const pos = (v: string) => (ORDINE.indexOf(v) + 1 || 99);
+  return [...p.importi].sort((a, b) => pos(a.voce) - pos(b.voce)).map((x) => ({ voce: VOCI[x.voce] ?? x.voce, importo: x.importo }));
+}
+
 function AreaSposi({ p }: { p: Pagina }) {
   const perVoce = Object.fromEntries(p.importi.map((x) => [x.voce, x.importo]));
   const pi = piano(perVoce);
@@ -213,8 +224,8 @@ function AreaSposi({ p }: { p: Pagina }) {
           <p className="sez">Riepilogo</p>
           <h2>Servizi e pagamenti</h2>
           <ul className="riepilogo">
-            {p.importi.map((x) => (
-              <li key={x.voce}><span>{VOCI[x.voce] ?? x.voce}</span><span>{x.importo ? euroTesto(x.importo) : "Omaggio"}</span></li>
+            {righeServizi(p).map((x, i) => (
+              <li key={x.voce + i}><span>{x.voce}</span><span>{x.importo ? euroTesto(x.importo) : "Omaggio"}</span></li>
             ))}
             <li className="tot"><span>Totale</span><span><Euro centesimi={pi.totale} /></span></li>
           </ul>
