@@ -31,7 +31,7 @@ export interface RigheGrezze {
 
 export interface Blocco {
   chiave: string; sopratitolo?: string; titolo?: string; corpo?: string; banda?: boolean; gallerie?: boolean;
-  passi?: [string, string][]; inclusi?: string[]; dati?: [string, string][]; lista?: string[];
+  passi?: [string, string][]; inclusi?: string[]; voce_prezzo?: string; dati?: [string, string][]; lista?: string[];
   link?: [string, string][]; nota?: string;
 }
 

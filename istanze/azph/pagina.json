@@ -60,30 +60,24 @@
     "quando": "preventivo",
     "sopratitolo": "Wedding reportage",
     "titolo": "Photo",
-    "corpo": "Il Servizio Fotografico è la **voce principale del preventivo**. Vi garantisce la mia presenza - continua e discreta - per tutta la giornata, secondo la timetable che condivideremo insieme.\n\nGli orari sono naturalmente **flessibili**: mi coordino con gli altri Fornitori e mi adatto all’andamento della giornata.\n\n**La quotazione include** la selezione delle foto, la post-produzione - curata personalmente da me - e la consegna in alta risoluzione.",
+    "corpo": "Il Servizio Fotografico è la **voce principale del preventivo**. Vi garantisce la mia presenza - continua e discreta - per tutta la giornata, secondo la **timetable qui sotto**: la rivedremo insieme qualche giorno prima del Matrimonio, con gli orari definitivi concordati anche con gli altri Fornitori.\n\nLa selezione delle foto e la post-produzione sono **curate personalmente da me**, dalla prima all’ultima foto.",
     "inclusi": [
       "Consegna di un pacchetto di **10 foto “Just Married Kit” entro 5 gg** dall’evento",
-      "**Selezione e post produzione** delle foto - minimo 700",
-      "Consegna tramite **link web privato UpYourShoot** temporaneo (tre mesi; alta definizione per gli Sposi, websize con watermark per amici e parenti)"
+      "**Almeno 700 foto** selezionate e post-prodotte",
+      "Consegna in alta definizione tramite **link web privato UpYourShoot**, attivo per tre mesi",
+      "**In omaggio il Photo sharing esteso**: anche amici e parenti scaricano le foto in alta definizione, senza watermark",
+      "**In omaggio la Galleria degli invitati**: gli ospiti caricano le loro foto della giornata in un’unica galleria",
+      "Consegna di **tutte le foto entro 6 mesi** dall’evento",
+      "**Trasferta inclusa**",
+      "**Nessuna caparra**: metà al kick-off meeting, metà alla consegna"
     ],
     "dati": [
       [
         "Validità",
         "30 giorni"
-      ],
-      [
-        "Consegna",
-        "entro 6 mesi dall’evento"
-      ],
-      [
-        "Trasferta",
-        "inclusa"
-      ],
-      [
-        "Pagamento",
-        "nessuna caparra; metà al kick-off meeting, metà alla consegna"
       ]
-    ]
+    ],
+    "voce_prezzo": "Servizio fotografico"
   },
   {
     "chiave": "servizio-duo",
@@ -96,15 +90,11 @@
       [
         "Validità",
         "30 giorni"
-      ],
-      [
-        "Consegna foto",
-        "entro 6 mesi dall’evento"
-      ],
-      [
-        "Trasferta",
-        "inclusa"
       ]
+    ],
+    "inclusi": [
+      "Consegna di **tutte le foto entro 6 mesi** dall’evento",
+      "**Trasferta inclusa**"
     ]
   },
   {
