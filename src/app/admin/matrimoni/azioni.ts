@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { euroInCentesimi, leggiPrezziSpeciali } from "@/lib/listino/motore";
 import { leggiTimeline } from "@/lib/admin/timeline";
-import { FONTI, STATI, nuovoToken } from "@/lib/admin/stati";
+import { STATI, nuovoToken } from "@/lib/admin/stati";
 
 export type Esito = { ok?: boolean; errore?: string } | null;
 
@@ -25,7 +25,7 @@ function campi(fd: FormData) {
 
 const Nuovo = z.object({
   data_inizio: data, ora_inizio: ora, location_id: uuid, formula_id: uuid,
-  fonte: z.enum(FONTI as [string, ...string[]]).or(z.literal("")).optional().default(""),
+  fonte: z.string().trim().max(20).regex(/^[\w .-]*$/).optional().default(""),
   stato, preparativi: spunta, note_private: testo(4000),
   nome1: testo(120), telefono1: testo(40), email1: testo(160),
   nome2: testo(120), telefono2: testo(40), email2: testo(160),
@@ -55,7 +55,7 @@ export async function creaMatrimonio(_: Esito, fd: FormData): Promise<Esito> {
 const Dati = z.object({
   id: z.string().uuid(), stato, data_inizio: data, data_fine: data, ora_inizio: ora, ora_fine: ora,
   location_id: uuid, videomaker_id: uuid,
-  fonte: z.enum(FONTI as [string, ...string[]]).or(z.literal("")).optional().default(""),
+  fonte: z.string().trim().max(20).regex(/^[\w .-]*$/).optional().default(""),
   preparativi: spunta, pagina_congiunta: spunta, note_private: testo(4000),
   galleria_url: testo(2000), copertina_url: testo(500),
 });

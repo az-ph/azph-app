@@ -14,6 +14,13 @@ export const STATI: { valore: string; etichetta: string }[] = [
 export const ETICHETTA_STATO: Record<string, string> = Object.fromEntries(STATI.map((s) => [s.valore, s.etichetta]));
 export const FONTI = ["MAT", "IGR", "FBO", "PSP", "WEB", "VDB", "ALTRO"];
 
+/** Fonti da proporre: quelle di base più tutte quelle già usate nei Matrimoni (anche importate dal foglio). */
+export function unisciFonti(usate: (string | null)[], attuale?: string | null): string[] {
+  const tutte = new Set([...FONTI, ...usate.filter((f): f is string => !!f && !!f.trim()).map((f) => f.trim())]);
+  if (attuale) tutte.add(attuale);
+  return [...tutte].sort((a, b) => (a === "ALTRO" ? 1 : b === "ALTRO" ? -1 : a.localeCompare(b)));
+}
+
 /** Token dei link Sposi: 22 caratteri base62 da crypto. */
 export function nuovoToken(lunghezza = 22): string {
   const alfabeto = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

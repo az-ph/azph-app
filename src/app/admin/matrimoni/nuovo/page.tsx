@@ -1,15 +1,17 @@
 import { supabaseSessione } from "@/lib/supabase/sessione";
-import { FONTI, STATI } from "@/lib/admin/stati";
+import { STATI, unisciFonti } from "@/lib/admin/stati";
 import { creaMatrimonio } from "../azioni";
 import { Modulo } from "../modulo";
 import { Campo, Spunta, inp } from "../campi";
 
 export default async function NuovoMatrimonio() {
   const supabase = await supabaseSessione();
-  const [{ data: location }, { data: formule }] = await Promise.all([
+  const [{ data: location }, { data: formule }, { data: usate }] = await Promise.all([
     supabase.from("location").select("id, nome, comune").order("nome"),
     supabase.from("voce_listino").select("id, codice, voce").eq("categoria", "formula").eq("attiva", true).order("codice"),
+    supabase.from("matrimonio").select("fonte").not("fonte", "is", null),
   ]);
+  const fonti = unisciFonti((usate ?? []).map((x) => x.fonte));
   return (
     <section className="max-w-3xl">
       <h1 className="font-serif text-2xl mb-1">Nuovo Matrimonio</h1>
@@ -31,7 +33,7 @@ export default async function NuovoMatrimonio() {
             </select>
           </Campo>
           <Campo etichetta="Fonte">
-            <select name="fonte" className={inp} defaultValue=""><option value="">—</option>{FONTI.map((f) => <option key={f}>{f}</option>)}</select>
+            <select name="fonte" className={inp} defaultValue=""><option value="">—</option>{fonti.map((f) => <option key={f}>{f}</option>)}</select>
           </Campo>
           <Campo etichetta="Stato">
             <select name="stato" className={inp} defaultValue="qte_to_contact">

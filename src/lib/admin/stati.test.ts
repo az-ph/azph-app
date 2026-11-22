@@ -16,3 +16,13 @@ describe("utilità admin", () => {
     expect(leggiPrezziSpeciali(prezziInTesto(p))).toEqual(p);
   });
 });
+
+describe("fonti", () => {
+  it("unisce quelle di base con quelle usate, ALTRO in fondo", async () => {
+    const { unisciFonti } = await import("./stati");
+    const f = unisciFonti(["VDM", "MAT", null, " WP "], "ZZZ");
+    expect(f.at(-1)).toBe("ALTRO");
+    expect(f).toEqual(expect.arrayContaining(["VDM", "WP", "ZZZ", "MAT", "PSP"]));
+    expect(new Set(f).size).toBe(f.length);
+  });
+});

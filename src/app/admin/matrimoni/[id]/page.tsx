@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { data, euro } from "@/lib/formato";
-import { FONTI, STATI, ETICHETTA_STATO, nomiBrevi, prezziInTesto } from "@/lib/admin/stati";
+import { STATI, ETICHETTA_STATO, nomiBrevi, prezziInTesto, unisciFonti } from "@/lib/admin/stati";
 import { calcolaOfferta, type Categoria } from "@/lib/listino/motore";
 import { listinoDaRighe, preventivoDaRiga } from "@/lib/sposi/dati";
 import { eliminaIncasso, registraIncasso, rigeneraLink, salvaDati, salvaPreventivo, salvaTimeline, segnaInviato } from "../azioni";
@@ -28,7 +28,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const supabase = await supabaseSessione();
 
-  const [m, sposi, prev, link, listino, location, videomaker, timeline, pagamenti, importi, eventi] = await Promise.all([
+  const [m, sposi, prev, link, listino, location, videomaker, timeline, pagamenti, importi, eventi, fontiUsate] = await Promise.all([
     supabase.from("matrimonio").select("id, codice_id, stato, fonte, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, pagina_congiunta, videomaker_id").eq("id", id).maybeSingle(),
     supabase.from("sposo").select("ordine, nome, telefono, email, codice_fiscale, indirizzo, indirizzo_preparativi, consenso_promo").eq("matrimonio_id", id).order("ordine"),
     supabase.from("preventivo").select("id, versione, opzioni, prezzi_speciali, preselezione, scelte, totale, inviato_il, confermato_il, righe_confermate, note_cliente").eq("matrimonio_id", id).order("versione", { ascending: false }).limit(1).maybeSingle(),
@@ -40,9 +40,11 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
     supabase.from("pagamento").select("id, tipo, importo, scadenza, pagato_il, note").eq("matrimonio_id", id).order("pagato_il", { nullsFirst: false }),
     supabase.from("importo").select("voce, importo").eq("matrimonio_id", id),
     supabase.from("evento_pagina").select("tipo, dettaglio, avvenuto_il").eq("matrimonio_id", id).order("avvenuto_il", { ascending: false }).limit(60),
+    supabase.from("matrimonio").select("fonte").not("fonte", "is", null),
   ]);
   if (!m.data) notFound();
   const mat = m.data;
+  const fonti = unisciFonti((fontiUsate.data ?? []).map((x) => x.fonte), mat.fonte);
   const s = sposi.data ?? [];
   const h = await headers();
   const base = process.env.URL || `https://${h.get("host") ?? ""}`;
@@ -84,7 +86,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
             <Campo etichetta="Ora inizio"><input type="time" name="ora_inizio" defaultValue={mat.ora_inizio?.slice(0, 5) ?? ""} className={inp} /></Campo>
             <Campo etichetta="Ora fine"><input type="time" name="ora_fine" defaultValue={mat.ora_fine?.slice(0, 5) ?? ""} className={inp} /></Campo>
             <Campo etichetta="Fonte">
-              <select name="fonte" defaultValue={mat.fonte ?? ""} className={inp}><option value="">—</option>{FONTI.map((f) => <option key={f}>{f}</option>)}</select>
+              <select name="fonte" defaultValue={mat.fonte ?? ""} className={inp}><option value="">—</option>{fonti.map((f) => <option key={f}>{f}</option>)}</select>
             </Campo>
             <Campo etichetta="Location">
               <select name="location_id" defaultValue={mat.location_id ?? ""} className={inp}>

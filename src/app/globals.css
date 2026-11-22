@@ -9,7 +9,11 @@
   --font-serif: "Playfair Display", Georgia, serif;
 }
 
+/* L'area admin resta chiara anche con il tema scuro del sistema */
+:root { color-scheme: light; }
+
 body {
+  background: #fff;
   color: var(--color-antracite);
   font-family: var(--font-sans);
 }
