@@ -17,7 +17,8 @@ export interface RigheGrezze {
   sposi: { ordine: number; nome: string | null; telefono: string | null; email: string | null; codice_fiscale: string | null;
     indirizzo: string | null; indirizzo_preparativi: string | null; consenso_promo: boolean }[];
   preventivo: { id: string; versione: number; opzioni: unknown; prezzi_speciali: unknown; preselezione: string[];
-    scelte: string[]; inviato_il?: string | null; confermato_il: string | null } | null;
+    scelte: string[]; inviato_il?: string | null; confermato_il: string | null;
+    righe_confermate?: { voce: string; importo: number }[] | null } | null;
   listino: { codice: string; categoria: string; voce: string; descrizione: string | null; prezzo: number;
     prezzo_barrato: number | null; gruppo: string | null; collegata_a: string | null; solo_se: string | null;
     riepilogo: string | null; collaboratore: string | null; attiva: boolean }[];
@@ -102,6 +103,7 @@ export function componiPagina(r: RigheGrezze) {
       id: r.preventivo.id, versione: r.preventivo.versione, preselezione: r.preventivo.preselezione,
       scelte: r.preventivo.scelte, confermato: !!r.preventivo.confermato_il,
       inviato: r.preventivo.inviato_il ?? null,
+      righe: Array.isArray(r.preventivo.righe_confermate) ? r.preventivo.righe_confermate : [],
     } : null,
     timeline: r.timeline.filter((t) => !t.nota_privata && t.fase)
       .map((t) => ({ giorno: t.giorno, ora: t.ora ? t.ora.slice(0, 5) : null, fase: t.fase as string, luogo: t.luogo })),

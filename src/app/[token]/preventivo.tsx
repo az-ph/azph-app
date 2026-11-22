@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { selezione, importiConferma, legataA, type Offerta, type VoceOfferta, ErroreSelezione } from "@/lib/listino/motore";
+import { selezione, importiConferma, legataA, righeRiepilogo, type Offerta, type VoceOfferta, ErroreSelezione } from "@/lib/listino/motore";
 import { conferma, traccia } from "./azioni";
 import { Contratto, Euro, Evidenzia, Paragrafi, euroTesto } from "./testo";
 import type { Blocco } from "@/lib/sposi/componi";
@@ -286,11 +286,9 @@ function FormConferma(props: Parameters<typeof Preventivo>[0] & {
 
   const sel = props.calcolo.sel;
   const omaggi = props.offerta.voci.filter((v) => v.categoria === "omaggio");
-  const righeFoto: [string, number][] = [
-    ["Servizio fotografico", props.servizio],
-    ...omaggi.map((v) => [v.voce, 0] as [string, number]),
-    ...(sel?.foto ?? []).map((x) => [x.etichetta.replace(/ \(omaggio\)$/, ""), x.totale] as [string, number]),
-  ];
+  const righeFoto: [string, number][] = sel
+    ? righeRiepilogo({ ...props.offerta, servizio: { ...props.offerta.servizio, prezzo: props.servizio } }, sel).map((r) => [r.voce, r.importo] as [string, number])
+    : [["Servizio fotografico", props.servizio], ...omaggi.map((v) => [v.voce, 0] as [string, number])];
   const righeVideo: [string, number][] = (sel?.video ?? []).map((x) => [x.etichetta, x.totale]);
   const tf = righeFoto.reduce((s, r) => s + r[1], 0), tv = righeVideo.reduce((s, r) => s + r[1], 0);
   const li = (r: [string, number][]) => r.map(([k, v], i) => <li key={k + i}><span>{k}</span><span>{v ? euroTesto(v) : "Omaggio"}</span></li>);

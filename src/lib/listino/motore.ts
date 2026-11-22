@@ -226,6 +226,15 @@ export function importiConferma(offerta: Offerta, sel: Selezione) {
   return { perVoce, totaleFoto, totaleVideo };
 }
 
+/** Righe del riepilogo foto, nell'ordine della pagina: servizio, omaggi, poi le scelte (importi in centesimi, 0 = omaggio). */
+export function righeRiepilogo(offerta: Offerta, sel: Selezione): { voce: string; importo: number }[] {
+  return [
+    { voce: "Servizio fotografico", importo: offerta.servizio.prezzo },
+    ...offerta.voci.filter((v) => v.categoria === "omaggio").map((v) => ({ voce: v.voce, importo: 0 })),
+    ...sel.foto.map((x) => ({ voce: x.etichetta.replace(/ \(omaggio\)$/, ""), importo: x.totale })),
+  ];
+}
+
 /** Acconto: 50% dei servizi; album e album genitori si pagano a parte. */
 export function piano(perVoce: Record<string, number>) {
   const totale = Object.values(perVoce).reduce((s, v) => s + v, 0);

@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServizio } from "@/lib/supabase/server";
 import { caricaPagina, matrimonioDaToken, registraEvento } from "@/lib/sposi/dati";
-import { calcolaOfferta, selezione, importiConferma, ErroreSelezione } from "@/lib/listino/motore";
+import { calcolaOfferta, selezione, importiConferma, righeRiepilogo, ErroreSelezione } from "@/lib/listino/motore";
 import { mailConferma } from "@/lib/mail/conferma";
 import { euro } from "@/lib/formato";
 
@@ -66,6 +66,7 @@ export async function conferma(token: string, input: unknown): Promise<EsitoConf
     return { errore: e instanceof ErroreSelezione ? e.message : "Selezione non valida: ricaricate la pagina." };
   }
   const imp = importiConferma(offerta, sel);
+  const righe = righeRiepilogo(offerta, sel);
   const scelte = [...sel.foto, ...sel.video].map((x) => x.codice + (x.qta > 1 ? "*" + x.qta : ""));
 
   const h = await headers();
@@ -83,6 +84,7 @@ export async function conferma(token: string, input: unknown): Promise<EsitoConf
       scelte,
       totale: imp.totaleFoto,
       importi: Object.entries(imp.perVoce).map(([voce, importo]) => ({ voce, importo })),
+      righe,
       sposi: d.sposi.map((s, i) => ({ ...s, ordine: i + 1 })),
       consenso_promo: d.consensoPromo,
       note: d.note,
@@ -114,11 +116,7 @@ export async function conferma(token: string, input: unknown): Promise<EsitoConf
       link: `${base}/${token}`,
       congiunta: pagina.matrimonio.paginaCongiunta,
       formula: offerta.formula,
-      righeFoto: [
-        ["Servizio fotografico", euro(offerta.servizio.prezzo)],
-        ...offerta.voci.filter((v) => v.categoria === "omaggio").map((v): [string, string] => [v.voce, "omaggio"]),
-        ...sel.foto.map((x): [string, string] => [x.etichetta.replace(/ \(omaggio\)$/, ""), x.totale ? euro(x.totale) : "omaggio"]),
-      ],
+      righeFoto: righe.map((r): [string, string] => [r.voce, r.importo ? euro(r.importo) : "omaggio"]),
       totaleFoto: imp.totaleFoto,
       video: sel.video.map((x) => ({ etichetta: x.etichetta, totale: x.totale })),
       totaleVideo: imp.totaleVideo,
