@@ -156,14 +156,16 @@ export default async function PaginaSposi({ params, searchParams }: {
             {p.modo === "preventivo" && (
               <div className="chiusura-servizio">
                 {offerta && !duo && (
-                  <div className="quadra box-prezzo">
+                  <div className="box-servizio">
+                    {servizio?.voce_prezzo && <p className="voce">{servizio.voce_prezzo}</p>}
                     <div className="prezzo">
                       {offerta.servizio.barrato > 0 && <span className="barrato">{euroTesto(offerta.servizio.barrato)}</span>}
                       <Euro centesimi={offerta.servizio.prezzo} />
                     </div>
+                    {rigaPreventivo && <p className="riga-preventivo">{rigaPreventivo}</p>}
                   </div>
                 )}
-                {rigaPreventivo && <p className="riga-preventivo">{rigaPreventivo}</p>}
+                {duo && rigaPreventivo && <p className="riga-preventivo">{rigaPreventivo}</p>}
               </div>
             )}
           </div>

@@ -321,6 +321,9 @@
 /* sezione Photo del preventivo: testo e timeline a tutta larghezza, prezzo in chiusura */
 #azp .prosa.larga{max-width:none}
 #azp #azp-timeline .tl{max-width:none}
-#azp .chiusura-servizio{display:flex;flex-direction:column;align-items:flex-start;gap:.75rem;margin-top:2.5rem}
-#azp .chiusura-servizio .box-prezzo{margin:0}
-#azp .riga-preventivo{font-size:.9em;opacity:.85;margin:0}
+#azp .chiusura-servizio{display:flex;flex-direction:column;align-items:center;margin-top:2.5rem}
+#azp .box-servizio{background:#fff;padding:1.6rem 2.5rem 1.4rem;text-align:center;width:100%;max-width:30rem}
+#azp .box-servizio .voce{font:400 1.25rem/1.1 var(--titolo);text-transform:uppercase;margin:0 0 .8rem;text-align:center}
+#azp .box-servizio .prezzo small{color:var(--verde-scuro)}
+#azp .box-servizio .barrato{display:block}
+#azp .riga-preventivo{font-size:.85em;opacity:.8;margin:.9rem 0 0;text-align:center}

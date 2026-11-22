@@ -60,10 +60,10 @@
     "quando": "preventivo",
     "sopratitolo": "Wedding reportage",
     "titolo": "Photo",
-    "corpo": "Il Servizio Fotografico è la **voce principale del preventivo**. Vi garantisce la mia presenza - continua e discreta - per tutta la giornata, secondo la timetable che condivideremo insieme.\n\nGli orari sono naturalmente **flessibili**: mi coordino con gli altri Fornitori e mi adatto all’andamento della giornata.\n\n**La quotazione include** la selezione delle foto, la post-produzione - curata personalmente da me - e la consegna in alta risoluzione.",
+    "corpo": "Il Servizio Fotografico è la **voce principale del preventivo**. Vi garantisce la mia presenza - continua e discreta - per tutta la giornata, secondo la **timetable qui sotto**: la rivedremo insieme qualche giorno prima del Matrimonio, con gli orari definitivi concordati anche con gli altri Fornitori.\n\nLa selezione delle foto e la post-produzione sono **curate personalmente da me**, dalla prima all’ultima foto.",
     "inclusi": [
       "Consegna di un pacchetto di **10 foto “Just Married Kit” entro 5 gg** dall’evento",
-      "**Selezione e post produzione** delle foto - minimo 700",
+      "**Almeno 700 foto** selezionate e post-prodotte",
       "Consegna tramite **link web privato UpYourShoot** temporaneo (tre mesi; alta definizione per gli Sposi, websize con watermark per amici e parenti)",
       "Consegna di **tutte le foto entro 6 mesi** dall’evento",
       "**Trasferta inclusa**",
@@ -74,7 +74,8 @@
         "Validità",
         "30 giorni"
       ]
-    ]
+    ],
+    "voce_prezzo": "Servizio fotografico"
   },
   {
     "chiave": "servizio-duo",
