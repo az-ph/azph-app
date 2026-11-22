@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { data } from "@/lib/formato";
+import { ETICHETTA_STATO as STATI } from "@/lib/admin/stati";
 
-const STATI: Record<string, string> = {
-  qte_to_contact: "Da contattare", qte_quote: "Preventivo", wdg_confermato: "Confermato", wdg_lightroom: "Lightroom",
-  wdg_invoice: "Saldo", wdg_album_todo: "Album da fare", wdg_album: "Album", clo_completed: "Chiuso",
-  clo_lost: "Perso", clo_no_answer: "Nessuna risposta",
-};
 
 export default async function Oggi() {
   const supabase = await supabaseSessione();
