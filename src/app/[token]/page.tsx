@@ -5,6 +5,7 @@ import "./pagina.css";
 import { caricaPagina, matrimonioDaToken, registraEvento } from "@/lib/sposi/dati";
 import { statoAccesso } from "@/lib/supabase/sessione";
 import { calcolaOfferta, piano } from "@/lib/listino/motore";
+import { calcolaRate } from "@/lib/sposi/rate";
 import { data, ora } from "@/lib/formato";
 import { Paragrafi, Evidenzia, Contratto, Euro, euroTesto } from "./testo";
 import { Preventivo } from "./preventivo";
@@ -216,7 +217,8 @@ function righeServizi(p: Pagina): { voce: string; importo: number }[] {
 function AreaSposi({ p }: { p: Pagina }) {
   const perVoce = Object.fromEntries(p.importi.map((x) => [x.voce, x.importo]));
   const pi = piano(perVoce);
-  const pagato = p.pagamenti.filter((x) => x.pagato_il).reduce((s, x) => s + x.importo, 0);
+  const rate = Object.fromEntries(calcolaRate(perVoce, p.pagamenti, p.matrimonio.dataInizio).map((r) => [r.tipo, r]));
+  const fatto = (t: string) => (rate[t] && rate[t].incassato >= rate[t].dovuto && rate[t].dovuto > 0 ? "fatto" : undefined);
   return (
     <>
       <section id="azp-pagamenti">
@@ -230,14 +232,14 @@ function AreaSposi({ p }: { p: Pagina }) {
             <li className="tot"><span>Totale</span><span><Euro centesimi={pi.totale} /></span></li>
           </ul>
           <div className="pag">
-            <div className={pagato >= pi.acconto ? "fatto" : undefined}>
-              <b>Acconto</b>50% dei servizi, al kick-off meeting<div className="imp"><Euro centesimi={pi.acconto} /></div>
+            <div className={fatto("acconto")}>
+              <b>Acconto</b>{rate.acconto.dovuto === Math.round(pi.servizi / 2) ? "50% dei servizi, al kick-off meeting" : "versato"}<div className="imp"><Euro centesimi={rate.acconto.dovuto} /></div>
             </div>
-            <div className={pagato >= pi.servizi ? "fatto" : undefined}>
-              <b>Saldo</b>alla consegna delle foto<div className="imp"><Euro centesimi={pi.servizi - pi.acconto} /></div>
+            <div className={fatto("saldo")}>
+              <b>Saldo</b>alla consegna delle foto<div className="imp"><Euro centesimi={rate.saldo.dovuto} /></div>
             </div>
             {pi.album > 0 && (
-              <div className={pagato >= pi.totale ? "fatto" : undefined}>
+              <div className={fatto("album")}>
                 <b>Album</b>alla consegna dell’album<div className="imp"><Euro centesimi={pi.album} /></div>
               </div>
             )}
