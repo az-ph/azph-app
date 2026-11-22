@@ -45,6 +45,8 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
   const h = await headers();
   const base = process.env.URL || `https://${h.get("host") ?? ""}`;
   const urlSposi = link.data ? `${base}/${link.data.token}` : null;
+  // Aperta dall'admin sullo stesso dominio: la sessione la esclude dal conteggio delle aperture
+  const apriSposi = link.data ? `/${link.data.token}` : null;
   const tel = s.find((x) => x.telefono)?.telefono?.replace(/[^\d+]/g, "");
 
   return (
@@ -56,7 +58,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
         <span className="text-xs bg-salvia-chiaro px-2 py-0.5 rounded">{ETICHETTA_STATO[mat.stato] ?? mat.stato}</span>
       </div>
       <div className="flex flex-wrap gap-4 mt-3 text-sm">
-        {urlSposi && <a href={urlSposi} target="_blank" rel="noopener noreferrer" className="underline text-salvia-scuro">Apri pagina Sposi</a>}
+        {apriSposi && <a href={apriSposi} target="_blank" rel="noopener noreferrer" className="underline text-salvia-scuro">Apri pagina Sposi</a>}
         {urlSposi && <CopiaLink url={urlSposi} />}
         {tel && <a href={`https://wa.me/${tel.replace(/^\+/, "").replace(/^(?!39)(\d{9,10})$/, "39$1")}`} target="_blank" rel="noopener noreferrer" className="underline text-salvia-scuro">WhatsApp</a>}
       </div>
@@ -119,7 +121,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
         </Modulo>
       )}
 
-      {tab === "preventivo" && <SchedaPreventivo mat={mat} prev={prev.data} listinoRighe={listino.data ?? []} urlSposi={urlSposi} />}
+      {tab === "preventivo" && <SchedaPreventivo mat={mat} prev={prev.data} listinoRighe={listino.data ?? []} urlSposi={apriSposi} />}
 
       {tab === "timeline" && (
         (timeline.data ?? []).length ? (
@@ -277,7 +279,11 @@ function SchedaPreventivo({ mat, prev, listinoRighe, urlSposi }: {
 function AttivitaPagina({ eventi }: { eventi: { tipo: string; dettaglio: unknown; avvenuto_il: string }[] }) {
   const aperture = eventi.filter((e) => e.tipo === "apertura");
   const tocchi = eventi.filter((e) => e.tipo === "selezione" || e.tipo === "deselezione");
-  const ora = (t: string) => new Date(t).toLocaleString("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "").replace(":", ".");
+  const ora = (t: string) => {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+      .formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+    return `${p.day}.${p.month}.${p.year} ${p.hour}.${p.minute}`;
+  };
   if (!eventi.length) return <p className="text-sm">La pagina non è ancora stata aperta.</p>;
   return (
     <div className="text-sm max-w-2xl">
