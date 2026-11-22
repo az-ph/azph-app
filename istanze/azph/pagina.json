@@ -64,24 +64,15 @@
     "inclusi": [
       "Consegna di un pacchetto di **10 foto “Just Married Kit” entro 5 gg** dall’evento",
       "**Selezione e post produzione** delle foto - minimo 700",
-      "Consegna tramite **link web privato UpYourShoot** temporaneo (tre mesi; alta definizione per gli Sposi, websize con watermark per amici e parenti)"
+      "Consegna tramite **link web privato UpYourShoot** temporaneo (tre mesi; alta definizione per gli Sposi, websize con watermark per amici e parenti)",
+      "Consegna di **tutte le foto entro 6 mesi** dall’evento",
+      "**Trasferta inclusa**",
+      "**Nessuna caparra**: metà al kick-off meeting, metà alla consegna"
     ],
     "dati": [
       [
         "Validità",
         "30 giorni"
-      ],
-      [
-        "Consegna",
-        "entro 6 mesi dall’evento"
-      ],
-      [
-        "Trasferta",
-        "inclusa"
-      ],
-      [
-        "Pagamento",
-        "nessuna caparra; metà al kick-off meeting, metà alla consegna"
       ]
     ]
   },
@@ -96,15 +87,11 @@
       [
         "Validità",
         "30 giorni"
-      ],
-      [
-        "Consegna foto",
-        "entro 6 mesi dall’evento"
-      ],
-      [
-        "Trasferta",
-        "inclusa"
       ]
+    ],
+    "inclusi": [
+      "Consegna di **tutte le foto entro 6 mesi** dall’evento",
+      "**Trasferta inclusa**"
     ]
   },
   {

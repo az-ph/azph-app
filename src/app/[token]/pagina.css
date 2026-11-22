@@ -318,3 +318,9 @@
 #azp .dati-sposo dt{opacity:.75}
 #azp .dati-sposo dd{margin:0;text-align:right;overflow-wrap:anywhere}
 #azp .grazie a.cta{display:inline-block;margin-top:1rem;text-decoration:none;color:var(--antracite)}
+/* sezione Photo del preventivo: testo e timeline a tutta larghezza, prezzo in chiusura */
+#azp .prosa.larga{max-width:none}
+#azp #azp-timeline .tl{max-width:none}
+#azp .chiusura-servizio{display:flex;flex-direction:column;align-items:flex-start;gap:.75rem;margin-top:2.5rem}
+#azp .chiusura-servizio .box-prezzo{margin:0}
+#azp .riga-preventivo{font-size:.9em;opacity:.85;margin:0}

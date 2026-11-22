@@ -58,6 +58,14 @@ export default async function PaginaSposi({ params, searchParams }: {
     ...datiFissi.filter(([k]) => k !== "Validità"),
   ] as [string, string][]).filter(([, v]) => v);
 
+  // Preventivo: versione e validità in una riga sotto il prezzo; gli altri dati dell'istanza diventano voci dell'elenco.
+  const validita = datiFissi.find(([k]) => k === "Validità")?.[1];
+  const rigaPreventivo = p.modo === "preventivo" && p.preventivo
+    ? [`${duo ? "Proposta" : "Preventivo"} ${versione}${p.preventivo.inviato ? ` del ${data(p.preventivo.inviato)}` : ""}`,
+       validita ? `${duo ? "valida" : "valido"} ${validita}` : ""].filter(Boolean).join(" · ")
+    : "";
+  const altriDati = datiFissi.filter(([k]) => k !== "Validità");
+
   return (
     <div id="azp" data-modo={modoCss} data-duo={duo ? "1" : undefined}>
       <header className="hero">
@@ -121,35 +129,42 @@ export default async function PaginaSposi({ params, searchParams }: {
               <a className="btn-gal" href={p.matrimonio.galleriaSposi} target="_blank" rel="noopener noreferrer">Apri la vostra galleria UpYourShoot</a>
             </div>
           )}
-          <div className="photo-grid">
-            <div className="prosa"><Paragrafi testo={servizio?.corpo} /></div>
-            <dl className="dati">{dati.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
-          </div>
+          {p.modo === "preventivo" ? (
+            <div className="prosa larga"><Paragrafi testo={servizio?.corpo} /></div>
+          ) : (
+            <div className="photo-grid">
+              <div className="prosa"><Paragrafi testo={servizio?.corpo} /></div>
+              <dl className="dati">{dati.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+            </div>
+          )}
         </div>
         <div className="blocco-verde" id="azp-timeline">
           <div className="wrap">
-            <div className="tl-grid">
-              <div>
-                {offerta?.formula && <p className="formula">{offerta.formula}</p>}
-                {p.timeline.length > 0 && (
-                  <ul className="tl">
-                    {p.timeline.map((t, i) => (
-                      <li key={i}><span className="ora">{ora(t.ora)}</span><span>{t.fase}{t.luogo ? ` | ${t.luogo}` : ""}</span></li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              {offerta && !duo && (
-                <div className="quadra box-prezzo">
-                  <div className="prezzo">
-                    {offerta.servizio.barrato > 0 && <span className="barrato">{euroTesto(offerta.servizio.barrato)}</span>}
-                    <Euro centesimi={offerta.servizio.prezzo} />
+            {p.timeline.length > 0 && (
+              <ul className="tl">
+                {p.timeline.map((t, i) => (
+                  <li key={i}><span className="ora">{ora(t.ora)}</span><span>{t.fase}{t.luogo ? ` | ${t.luogo}` : ""}</span></li>
+                ))}
+              </ul>
+            )}
+            {p.modo === "preventivo" && (servizio?.inclusi || altriDati.length > 0) && (
+              <ul className="inclusi">
+                {(servizio?.inclusi ?? []).map((x, i) => <li key={i}><Evidenzia testo={x} /></li>)}
+                {altriDati.map(([k, v]) => <li key={k}><b>{k}</b>: {v}</li>)}
+              </ul>
+            )}
+            {p.modo === "preventivo" && (
+              <div className="chiusura-servizio">
+                {offerta && !duo && (
+                  <div className="quadra box-prezzo">
+                    <div className="prezzo">
+                      {offerta.servizio.barrato > 0 && <span className="barrato">{euroTesto(offerta.servizio.barrato)}</span>}
+                      <Euro centesimi={offerta.servizio.prezzo} />
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-            {p.modo === "preventivo" && servizio?.inclusi && (
-              <ul className="inclusi">{servizio.inclusi.map((x, i) => <li key={i}><Evidenzia testo={x} /></li>)}</ul>
+                )}
+                {rigaPreventivo && <p className="riga-preventivo">{rigaPreventivo}</p>}
+              </div>
             )}
           </div>
         </div>
