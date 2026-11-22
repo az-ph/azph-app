@@ -4,7 +4,8 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabaseSessione } from "@/lib/supabase/sessione";
-import { leggiPrezziSpeciali } from "@/lib/listino/motore";
+import { euroInCentesimi, leggiPrezziSpeciali } from "@/lib/listino/motore";
+import { leggiTimeline } from "@/lib/admin/timeline";
 import { FONTI, STATI, nuovoToken } from "@/lib/admin/stati";
 
 export type Esito = { ok?: boolean; errore?: string } | null;
@@ -146,5 +147,56 @@ export async function rigeneraLink(fd: FormData) {
   const supabase = await supabaseSessione();
   await supabase.from("link_sposi").update({ revocato_il: new Date().toISOString() }).eq("matrimonio_id", mid).is("revocato_il", null);
   await supabase.from("link_sposi").insert({ matrimonio_id: mid, token: nuovoToken() });
+  revalidatePath(`/admin/matrimoni/${mid}`);
+}
+
+// ---------- Timeline ----------
+
+export async function salvaTimeline(_: Esito, fd: FormData): Promise<Esito> {
+  const mid = z.string().uuid().safeParse(fd.get("matrimonio_id"));
+  const testoT = z.string().max(20000).safeParse(fd.get("timeline") ?? "");
+  if (!mid.success || !testoT.success) return { errore: "Dati non validi." };
+  const { righe, errori } = leggiTimeline(testoT.data);
+  if (errori.length) return { errore: errori.join(" · ") };
+  const supabase = await supabaseSessione();
+  const { error } = await supabase.rpc("admin_salva_timeline", { mid: mid.data, righe });
+  if (error) return { errore: error.message };
+  revalidatePath(`/admin/matrimoni/${mid.data}`);
+  return { ok: true };
+}
+
+// ---------- Pagamenti ----------
+
+const TIPI_INCASSO = ["acconto", "saldo", "album", "altro"] as const;
+const Incasso = z.object({
+  matrimonio_id: z.string().uuid(),
+  tipo: z.enum(TIPI_INCASSO),
+  importo: z.string().trim().min(1),
+  pagato_il: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  note: testo(300),
+});
+
+export async function registraIncasso(_: Esito, fd: FormData): Promise<Esito> {
+  const d = Incasso.safeParse(campi(fd));
+  if (!d.success) return { errore: "Servono rata, importo e data." };
+  const v = d.data;
+  // "1.200" è milleduecento (punto delle migliaia), non 1,20
+  const grezzo = /^\d{1,3}(\.\d{3})+$/.test(v.importo.replace(/[€\s]/g, "")) ? v.importo.replace(/\./g, "") : v.importo;
+  const centesimi = euroInCentesimi(grezzo);
+  if (!Number.isFinite(centesimi) || centesimi <= 0) return { errore: "Importo non valido (es. 800 oppure 800,50)." };
+  const supabase = await supabaseSessione();
+  const { error } = await supabase.from("pagamento").insert({
+    matrimonio_id: v.matrimonio_id, tipo: v.tipo, importo: centesimi, pagato_il: v.pagato_il, note: v.note || null,
+  });
+  if (error) return { errore: error.message };
+  revalidatePath(`/admin/matrimoni/${v.matrimonio_id}`);
+  return { ok: true };
+}
+
+export async function eliminaIncasso(fd: FormData) {
+  const id = z.string().uuid().parse(fd.get("id"));
+  const mid = z.string().uuid().parse(fd.get("matrimonio_id"));
+  const supabase = await supabaseSessione();
+  await supabase.from("pagamento").delete().eq("id", id).eq("matrimonio_id", mid);
   revalidatePath(`/admin/matrimoni/${mid}`);
 }

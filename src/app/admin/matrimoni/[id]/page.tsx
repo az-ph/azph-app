@@ -6,7 +6,9 @@ import { data, euro } from "@/lib/formato";
 import { FONTI, STATI, ETICHETTA_STATO, nomiBrevi, prezziInTesto } from "@/lib/admin/stati";
 import { calcolaOfferta, type Categoria } from "@/lib/listino/motore";
 import { listinoDaRighe, preventivoDaRiga } from "@/lib/sposi/dati";
-import { rigeneraLink, salvaDati, salvaPreventivo, segnaInviato } from "../azioni";
+import { eliminaIncasso, registraIncasso, rigeneraLink, salvaDati, salvaPreventivo, salvaTimeline, segnaInviato } from "../azioni";
+import { calcolaRate } from "@/lib/sposi/rate";
+import { scriviTimeline } from "@/lib/admin/timeline";
 import { CopiaLink, Modulo } from "../modulo";
 import { Campo, Spunta, inp } from "../campi";
 
@@ -35,7 +37,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
     supabase.from("location").select("id, nome, comune").order("nome"),
     supabase.from("collaboratore").select("id, nome, codice").eq("ruolo", "videomaker").order("nome"),
     supabase.from("timeline").select("giorno, ordine, ora, fase, luogo, nota_privata").eq("matrimonio_id", id).order("giorno").order("ordine"),
-    supabase.from("pagamento").select("tipo, importo, scadenza, pagato_il, metodo").eq("matrimonio_id", id).order("scadenza"),
+    supabase.from("pagamento").select("id, tipo, importo, scadenza, pagato_il, note").eq("matrimonio_id", id).order("pagato_il", { nullsFirst: false }),
     supabase.from("importo").select("voce, importo").eq("matrimonio_id", id),
     supabase.from("evento_pagina").select("tipo, dettaglio, avvenuto_il").eq("matrimonio_id", id).order("avvenuto_il", { ascending: false }).limit(60),
   ]);
@@ -45,6 +47,8 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
   const h = await headers();
   const base = process.env.URL || `https://${h.get("host") ?? ""}`;
   const urlSposi = link.data ? `${base}/${link.data.token}` : null;
+  // Aperta dall'admin sullo stesso dominio: la sessione la esclude dal conteggio delle aperture
+  const apriSposi = link.data ? `/${link.data.token}` : null;
   const tel = s.find((x) => x.telefono)?.telefono?.replace(/[^\d+]/g, "");
 
   return (
@@ -56,7 +60,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
         <span className="text-xs bg-salvia-chiaro px-2 py-0.5 rounded">{ETICHETTA_STATO[mat.stato] ?? mat.stato}</span>
       </div>
       <div className="flex flex-wrap gap-4 mt-3 text-sm">
-        {urlSposi && <a href={urlSposi} target="_blank" rel="noopener noreferrer" className="underline text-salvia-scuro">Apri pagina Sposi</a>}
+        {apriSposi && <a href={apriSposi} target="_blank" rel="noopener noreferrer" className="underline text-salvia-scuro">Apri pagina Sposi</a>}
         {urlSposi && <CopiaLink url={urlSposi} />}
         {tel && <a href={`https://wa.me/${tel.replace(/^\+/, "").replace(/^(?!39)(\d{9,10})$/, "39$1")}`} target="_blank" rel="noopener noreferrer" className="underline text-salvia-scuro">WhatsApp</a>}
       </div>
@@ -119,39 +123,12 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
         </Modulo>
       )}
 
-      {tab === "preventivo" && <SchedaPreventivo mat={mat} prev={prev.data} listinoRighe={listino.data ?? []} urlSposi={urlSposi} />}
+      {tab === "preventivo" && <SchedaPreventivo mat={mat} prev={prev.data} listinoRighe={listino.data ?? []} urlSposi={apriSposi} />}
 
-      {tab === "timeline" && (
-        (timeline.data ?? []).length ? (
-          <table className="text-sm w-full max-w-3xl">
-            <tbody>{(timeline.data ?? []).map((t, i) => (
-              <tr key={i} className="border-b align-top">
-                <td className="py-1.5 pr-3 tabular-nums w-16">{t.ora?.slice(0, 5).replace(":", ".") ?? ""}</td>
-                <td className="py-1.5">{t.nota_privata ? <i className="text-antracite/70">Nota privata: {t.fase}</i> : <>{t.fase}{t.luogo ? ` | ${t.luogo}` : ""}</>}</td>
-              </tr>
-            ))}</tbody>
-          </table>
-        ) : <p className="text-sm">Nessuna riga di timeline.</p>
-      )}
+      {tab === "timeline" && <SchedaTimeline mid={mat.id} righe={timeline.data ?? []} />}
 
       {tab === "pagamenti" && (
-        <div className="grid sm:grid-cols-2 gap-8 max-w-4xl text-sm">
-          <div>
-            <h2 className="font-serif text-lg mb-2">Importi</h2>
-            <ul>{(importi.data ?? []).map((x) => <li key={x.voce} className="flex justify-between border-b py-1"><span>{x.voce}</span><span className="tabular-nums">{euro(x.importo)}</span></li>)}</ul>
-          </div>
-          <div>
-            <h2 className="font-serif text-lg mb-2">Pagamenti</h2>
-            {(pagamenti.data ?? []).length ? (
-              <ul>{(pagamenti.data ?? []).map((x, i) => (
-                <li key={i} className="flex justify-between border-b py-1 gap-3">
-                  <span>{x.tipo}{x.scadenza ? ` · ${data(x.scadenza)}` : ""}</span>
-                  <span className="tabular-nums">{euro(x.importo)} {x.pagato_il ? `✓ ${data(x.pagato_il)}` : "da pagare"}</span>
-                </li>
-              ))}</ul>
-            ) : <p>Nessun pagamento registrato.</p>}
-          </div>
-        </div>
+        <SchedaPagamenti mid={mat.id} dataMatrimonio={mat.data_inizio} importi={importi.data ?? []} incassi={pagamenti.data ?? []} />
       )}
 
       {tab === "attivita" && (
@@ -277,7 +254,11 @@ function SchedaPreventivo({ mat, prev, listinoRighe, urlSposi }: {
 function AttivitaPagina({ eventi }: { eventi: { tipo: string; dettaglio: unknown; avvenuto_il: string }[] }) {
   const aperture = eventi.filter((e) => e.tipo === "apertura");
   const tocchi = eventi.filter((e) => e.tipo === "selezione" || e.tipo === "deselezione");
-  const ora = (t: string) => new Date(t).toLocaleString("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "").replace(":", ".");
+  const ora = (t: string) => {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+      .formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+    return `${p.day}.${p.month}.${p.year} ${p.hour}.${p.minute}`;
+  };
   if (!eventi.length) return <p className="text-sm">La pagina non è ancora stata aperta.</p>;
   return (
     <div className="text-sm max-w-2xl">
@@ -287,6 +268,101 @@ function AttivitaPagina({ eventi }: { eventi: { tipo: string; dettaglio: unknown
         const cosa = e.tipo === "apertura" ? "Apertura" : e.tipo === "invio" ? "Conferma" : `${e.tipo === "selezione" ? "Aggiunto" : "Tolto"} ${String(d.codice ?? "")}`;
         return <li key={i} className="flex justify-between border-b py-1"><span>{cosa}</span><span className="tabular-nums text-antracite/70">{ora(e.avvenuto_il)}</span></li>;
       })}</ul>
+    </div>
+  );
+}
+
+function SchedaTimeline({ mid, righe }: { mid: string; righe: { ora: string | null; fase: string | null; luogo: string | null; nota_privata: boolean }[] }) {
+  return (
+    <div className="grid lg:grid-cols-[1fr_20rem] gap-10">
+      <Modulo azione={salvaTimeline}>
+        <input type="hidden" name="matrimonio_id" value={mid} />
+        <Campo etichetta="Una riga per momento: ora, momento | luogo · # all'inizio = nota privata">
+          <textarea name="timeline" rows={16} className={`${inp} font-mono text-sm leading-6`}
+            defaultValue={scriviTimeline(righe.map((r) => ({ ...r, fase: r.fase ?? "" })))}
+            placeholder={"13.45 Preparativi della Sposa | Casa\n16.00 Rito civile | Villa\n17.00 Aperitivo\n# parcheggio sul retro\n01.00 Termine presunto del servizio"} />
+        </Campo>
+      </Modulo>
+      <aside className="text-sm">
+        <h2 className="font-serif text-lg mb-2">Come la vedono gli Sposi</h2>
+        {righe.filter((r) => !r.nota_privata).length ? (
+          <ul>{righe.filter((r) => !r.nota_privata).map((r, i) => (
+            <li key={i} className="flex gap-3 border-b py-1.5"><span className="tabular-nums w-12 shrink-0">{r.ora?.slice(0, 5).replace(":", ".") ?? ""}</span><span>{r.fase}{r.luogo ? ` | ${r.luogo}` : ""}</span></li>
+          ))}</ul>
+        ) : <p className="text-antracite/70">Ancora vuota.</p>}
+        <p className="mt-3 text-antracite/70">Gli orari dopo mezzanotte passano da soli al giorno dopo. Le note private non compaiono mai.</p>
+      </aside>
+    </div>
+  );
+}
+
+const NOME_RATA: Record<string, string> = { acconto: "Acconto", saldo: "Saldo", album: "Album", album_genitori: "Album genitori", altro: "Incasso dal foglio / altro" };
+
+function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
+  mid: string; dataMatrimonio: string | null; importi: { voce: string; importo: number }[];
+  incassi: { id: string; tipo: string; importo: number; scadenza: string | null; pagato_il: string | null; note: string | null }[];
+}) {
+  const perVoce = Object.fromEntries(importi.map((x) => [x.voce, x.importo]));
+  const rate = calcolaRate(perVoce, incassi, dataMatrimonio);
+  const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+  if (!importi.length) return <p className="text-sm">Nessun importo: le rate compaiono dopo la conferma del preventivo.</p>;
+  return (
+    <div className="text-sm max-w-4xl">
+      <table className="w-full mb-8">
+        <thead><tr className="text-left border-b text-antracite/75"><th className="py-1">Rata</th><th>Scadenza</th><th className="text-right">Dovuto</th><th className="text-right">Incassato</th><th className="text-right">Manca</th><th></th></tr></thead>
+        <tbody>{rate.map((r) => {
+          const manca = Math.max(0, r.dovuto - r.incassato);
+          return (
+            <tr key={r.tipo} className="border-b align-middle">
+              <td className="py-2 font-medium">{NOME_RATA[r.tipo]}</td>
+              <td className="tabular-nums">{r.scadenza ? data(r.scadenza) : r.tipo === "saldo" ? "alla consegna" : r.tipo === "album" ? "alla consegna album" : "—"}</td>
+              <td className="text-right tabular-nums">{euro(r.dovuto)}</td>
+              <td className="text-right tabular-nums">{euro(r.incassato)}</td>
+              <td className="text-right tabular-nums">{manca ? euro(manca) : "✓"}</td>
+              <td className="pl-4">
+                {manca > 0 && (
+                  <Modulo azione={registraIncasso} etichetta="Segna pagato" className="flex items-center gap-2 [&>div]:mt-0">
+                    <input type="hidden" name="matrimonio_id" value={mid} />
+                    <input type="hidden" name="tipo" value={r.tipo} />
+                    <input name="importo" defaultValue={(manca / 100).toFixed(2).replace(".", ",")} className={`${inp} w-24 text-sm`} aria-label="Importo" />
+                    <input type="date" name="pagato_il" defaultValue={oggi} className={`${inp} text-sm`} aria-label="Data" />
+                  </Modulo>
+                )}
+              </td>
+            </tr>
+          );
+        })}</tbody>
+      </table>
+      <p className="text-antracite/75 mb-6">Se l&apos;acconto incassato è diverso dal calcolo, l&apos;acconto diventa quello e il saldo si ricalcola. Correggi l&apos;importo nel campo prima di premere &quot;Segna pagato&quot;.</p>
+
+      <div className="grid sm:grid-cols-2 gap-10">
+        <div>
+          <h2 className="font-serif text-lg mb-2">Incassi registrati</h2>
+          {incassi.filter((x) => x.pagato_il).length ? (
+            <ul>{incassi.filter((x) => x.pagato_il).map((x) => (
+              <li key={x.id} className="flex justify-between gap-3 border-b py-1.5">
+                <span>{NOME_RATA[x.tipo] ?? x.tipo} · {data(x.pagato_il)}{x.note ? <span className="text-antracite/60"> · {x.note}</span> : null}</span>
+                <span className="flex items-center gap-3 tabular-nums">{euro(x.importo)}
+                  <form action={eliminaIncasso}><input type="hidden" name="id" value={x.id} /><input type="hidden" name="matrimonio_id" value={mid} />
+                    <button className="text-red-700 text-xs underline" aria-label="Elimina incasso">elimina</button></form>
+                </span>
+              </li>
+            ))}</ul>
+          ) : <p>Nessun incasso registrato.</p>}
+        </div>
+        <div>
+          <h2 className="font-serif text-lg mb-2">Aggiungi incasso</h2>
+          <Modulo azione={registraIncasso} etichetta="Registra">
+            <input type="hidden" name="matrimonio_id" value={mid} />
+            <div className="grid grid-cols-2 gap-3">
+              <Campo etichetta="Rata"><select name="tipo" className={inp} defaultValue="acconto">{["acconto", "saldo", "album", "altro"].map((t) => <option key={t} value={t}>{NOME_RATA[t]}</option>)}</select></Campo>
+              <Campo etichetta="Importo (€)"><input name="importo" className={inp} placeholder="800" /></Campo>
+              <Campo etichetta="Data"><input type="date" name="pagato_il" defaultValue={oggi} className={inp} /></Campo>
+              <Campo etichetta="Nota"><input name="note" className={inp} /></Campo>
+            </div>
+          </Modulo>
+        </div>
+      </div>
     </div>
   );
 }
