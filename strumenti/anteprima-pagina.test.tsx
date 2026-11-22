@@ -22,7 +22,7 @@ vi.mock("@/lib/sposi/dati", () => ({
         formula: { codice: "W-REL-1F" }, videomaker: { codice: "MBA", nome: "Mattia Batalocco" } },
       sposi: [{ ordine: 1, nome: "Anna Rossi", telefono: "", email: "", codice_fiscale: "", indirizzo: "", indirizzo_preparativi: "", consenso_promo: true },
               { ordine: 2, nome: "Bruno Verdi", telefono: "", email: "", codice_fiscale: "", indirizzo: "", indirizzo_preparativi: "", consenso_promo: true }],
-      preventivo: { id: "p1", versione: 1, opzioni: { proponi_video: true }, prezzi_speciali: { servizio: 110000 }, preselezione: ["box"], scelte: [], inviato_il: "2026-11-10", confermato_il: null },
+      preventivo: { id: "p1", versione: 1, opzioni: { proponi_video: true }, prezzi_speciali: { servizio: 110000 }, preselezione: ["box", "alb-prm"], scelte: [], inviato_il: "2026-11-10", confermato_il: null },
       listino: [], timeline: [
         { giorno: 1, ora: "14:30:00", fase: "Preparativi di Anna", luogo: "Casa privata - Mantova MN", nota_privata: false, ordine: 1 },
         { giorno: 1, ora: "16:00:00", fase: "Rito civile", luogo: null, nota_privata: false, ordine: 2 },

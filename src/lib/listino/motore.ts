@@ -15,7 +15,7 @@ export interface VoceListino {
   prezzo: number;          // centesimi
   prezzoBarrato?: number;  // centesimi, 0/assente = nessuno
   gruppo?: string;
-  collegataA?: string;     // codice della voce a cui è legata (replica → album, opzionale video → pacchetto)
+  collegataA?: string;     // codice (o codici separati da virgola) della voce a cui è legata: replica → album, opzionale video → pacchetto
   /** Condizioni separate da virgola sulle opzioni del preventivo; "!" nega. Es. "proponi_op2_ibrido,!proponi_video". */
   soloSe?: string;
   /** Voce del riepilogo importi (equivale a COLONNA APERTI): "servizio", "memory_box", "secondo_operatore"… */
@@ -73,6 +73,11 @@ function prezzoApplicato(base: number, barrato: number | undefined, speciale: nu
   if (speciale === undefined) return { prezzo: base, barrato: barrato && barrato > base ? barrato : 0 };
   const rif = Math.max(base, barrato ?? 0);
   return { prezzo: speciale, barrato: rif > speciale ? rif : 0 };
+}
+
+/** La voce è legata a `codice`? collegataA può elencare più codici separati da virgola. */
+export function legataA(v: { collegataA?: string }, codice: string): boolean {
+  return (v.collegataA ?? "").split(",").map((c) => c.trim()).includes(codice);
 }
 
 export function condizioneVera(soloSe: string | undefined, opzioni: OpzioniPreventivo): boolean {
@@ -193,7 +198,7 @@ export function selezione(voci: VoceOfferta[], scelta: SceltaSposi): Selezione {
   }));
   for (const x of voci.filter((v) => v.categoria === "replica")) {
     const n = Math.max(0, Math.min(10, Math.floor(Number(scelta.qta?.[x.codice] ?? 0))));
-    if (n && scelte.some((s) => s.codice === x.collegataA)) {
+    if (n && scelte.some((s) => legataA(x, s.codice))) {
       foto.push({ ...x, qta: n, totale: n * x.prezzo, etichetta: `${x.voce} × ${n}` });
     }
   }

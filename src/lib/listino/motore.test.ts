@@ -150,3 +150,17 @@ describe("conversioni", () => {
     expect(leggiPrezziSpeciali("servizio =1100\nbox = 0; rep-prm = 80")).toEqual({ servizio: 110000, box: 0, "rep-prm": 8000 });
   });
 });
+
+describe("album genitori con più album", () => {
+  const listino = L.map((v) => (v.codice === "rep-prm" ? { ...v, collegataA: "alb-prm, alb-std" } : v));
+  it("si somma anche con l'album Standard", () => {
+    const off = calcolaOfferta(listino, prev({ formula: "W-CIV-1F" }));
+    const sel = selezione(off.voci, { extra: ["alb-std"], qta: { "rep-prm": 2 } });
+    expect(sel.foto.find((x) => x.codice === "rep-prm")?.totale).toBe(20000);
+  });
+  it("senza album non si somma", () => {
+    const off = calcolaOfferta(listino, prev({ formula: "W-CIV-1F" }));
+    const sel = selezione(off.voci, { extra: [], qta: { "rep-prm": 2 } });
+    expect(sel.foto.find((x) => x.codice === "rep-prm")).toBeUndefined();
+  });
+});

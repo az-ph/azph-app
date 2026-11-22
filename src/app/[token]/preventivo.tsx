@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { selezione, importiConferma, type Offerta, type VoceOfferta, ErroreSelezione } from "@/lib/listino/motore";
+import { selezione, importiConferma, legataA, type Offerta, type VoceOfferta, ErroreSelezione } from "@/lib/listino/motore";
 import { conferma, traccia } from "./azioni";
 import { Contratto, Euro, Evidenzia, Paragrafi, euroTesto } from "./testo";
 import type { Blocco } from "@/lib/sposi/componi";
@@ -55,7 +55,7 @@ export function Preventivo(props: {
         n.add(v.codice);
       } else {
         n.delete(v.codice);
-        if (v.categoria === "album") setQta((q) => Object.fromEntries(Object.entries(q).filter(([k]) => voci.find((r) => r.codice === k)?.collegataA !== v.codice)));
+        if (v.categoria === "album") setQta((q) => Object.fromEntries(Object.entries(q).filter(([k]) => !legataA(voci.find((r) => r.codice === k) ?? {}, v.codice))));
       }
       void traccia(token, v.codice, attiva);
       return n;
@@ -136,7 +136,7 @@ export function Preventivo(props: {
             <div className="opzioni due">
               {album.map((v) => card(v))}
               {repliche.map((r) => {
-                const attiva = scelti.has(r.collegataA ?? "");
+                const attiva = [...scelti].some((c) => legataA(r, c));
                 const q = attiva ? (qta[r.codice] ?? 0) : 0;
                 const cambiaQta = (d: number) => setQta({ ...qta, [r.codice]: Math.max(0, Math.min(10, q + d)) });
                 return (
