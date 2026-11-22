@@ -28,7 +28,10 @@ export default async function Oggi() {
 
   return (
     <section>
-      <h1 className="font-serif text-2xl mb-4">Matrimoni in corso</h1>
+      <div className="flex items-baseline justify-between max-w-3xl mb-4">
+        <h1 className="font-serif text-2xl">Matrimoni in corso</h1>
+        <Link href="/admin/matrimoni/nuovo" className="bg-salvia-scuro text-white text-sm px-4 py-2 rounded">+ Nuovo Matrimonio</Link>
+      </div>
       <table className="text-sm w-full max-w-3xl">
         <thead><tr className="text-left border-b"><th className="py-1">Codice</th><th>Data</th><th>Sposi</th><th>Stato</th><th>Pagina Sposi</th></tr></thead>
         <tbody>
@@ -38,9 +41,9 @@ export default async function Oggi() {
               .sort((a, b) => a.ordine - b.ordine).map((s) => (s.nome ?? "").split(" ")[0]).join(" e ");
             return (
               <tr key={m.id} className="border-b">
-                <td className="py-1 tabular-nums">{m.codice_id}</td>
+                <td className="py-1 tabular-nums"><Link href={`/admin/matrimoni/${m.id}`} className="underline text-salvia-scuro">{m.codice_id}</Link></td>
                 <td className="tabular-nums">{data(m.data_inizio)}</td>
-                <td>{nomi}</td>
+                <td><Link href={`/admin/matrimoni/${m.id}`}>{nomi || "—"}</Link></td>
                 <td>{STATI[m.stato] ?? m.stato}
                   {m.stato.startsWith("qte") && !(m.preventivo as { id: string }[]).length && <span className="ml-2 text-xs text-red-700">senza preventivo</span>}
                 </td>

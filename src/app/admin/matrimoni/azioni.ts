@@ -1,0 +1,150 @@
+"use server";
+
+import { z } from "zod";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { supabaseSessione } from "@/lib/supabase/sessione";
+import { leggiPrezziSpeciali } from "@/lib/listino/motore";
+import { FONTI, STATI, nuovoToken } from "@/lib/admin/stati";
+
+export type Esito = { ok?: boolean; errore?: string } | null;
+
+const testo = (max: number) => z.string().trim().max(max).optional().default("");
+const data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal("")).optional().default("");
+const ora = z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional().default("");
+const uuid = z.string().uuid().or(z.literal("")).optional().default("");
+const spunta = z.preprocess((v) => v === "on" || v === "true", z.boolean());
+const stato = z.enum(STATI.map((s) => s.valore) as [string, ...string[]]);
+
+function campi(fd: FormData) {
+  return Object.fromEntries([...fd.keys()].map((k) => [k, fd.get(k)]));
+}
+
+// ---------- Nuovo Matrimonio ----------
+
+const Nuovo = z.object({
+  data_inizio: data, ora_inizio: ora, location_id: uuid, formula_id: uuid,
+  fonte: z.enum(FONTI as [string, ...string[]]).or(z.literal("")).optional().default(""),
+  stato, preparativi: spunta, note_private: testo(4000),
+  nome1: testo(120), telefono1: testo(40), email1: testo(160),
+  nome2: testo(120), telefono2: testo(40), email2: testo(160),
+});
+
+export async function creaMatrimonio(_: Esito, fd: FormData): Promise<Esito> {
+  const d = Nuovo.safeParse(campi(fd));
+  if (!d.success) return { errore: "Controlla i campi: data gg/mm/aaaa, ora hh:mm." };
+  const v = d.data;
+  if (!v.nome1 && !v.nome2) return { errore: "Serve almeno il nome di uno degli Sposi." };
+  const supabase = await supabaseSessione();
+  const { data: id, error } = await supabase.rpc("admin_nuovo_matrimonio", {
+    dati: {
+      ...v, token: nuovoToken(),
+      sposi: [
+        { ordine: 1, nome: v.nome1, telefono: v.telefono1, email: v.email1 },
+        { ordine: 2, nome: v.nome2, telefono: v.telefono2, email: v.email2 },
+      ],
+    },
+  });
+  if (error || !id) return { errore: "Non sono riuscito a creare il Matrimonio: " + (error?.message ?? "") };
+  redirect(`/admin/matrimoni/${id}?tab=preventivo`);
+}
+
+// ---------- Dati del Matrimonio e degli Sposi ----------
+
+const Dati = z.object({
+  id: z.string().uuid(), stato, data_inizio: data, data_fine: data, ora_inizio: ora, ora_fine: ora,
+  location_id: uuid, videomaker_id: uuid,
+  fonte: z.enum(FONTI as [string, ...string[]]).or(z.literal("")).optional().default(""),
+  preparativi: spunta, pagina_congiunta: spunta, note_private: testo(4000),
+  galleria_url: testo(2000), copertina_url: testo(500),
+});
+const SposoForm = z.object({
+  nome: testo(120), telefono: testo(40), email: testo(160), codice_fiscale: testo(16),
+  indirizzo: testo(300), indirizzo_preparativi: testo(300),
+});
+
+export async function salvaDati(_: Esito, fd: FormData): Promise<Esito> {
+  const d = Dati.safeParse(campi(fd));
+  if (!d.success) return { errore: "Controlla date (gg/mm/aaaa) e orari (hh:mm)." };
+  const v = d.data;
+  const sposi = [1, 2].map((o) => SposoForm.safeParse(Object.fromEntries(
+    ["nome", "telefono", "email", "codice_fiscale", "indirizzo", "indirizzo_preparativi"].map((k) => [k, fd.get(`s${o}_${k}`) ?? ""]),
+  )));
+  if (sposi.some((s) => !s.success)) return { errore: "Controlla i dati degli Sposi (codice fiscale: 16 caratteri)." };
+
+  const supabase = await supabaseSessione();
+  const { error } = await supabase.from("matrimonio").update({
+    stato: v.stato, data_inizio: v.data_inizio || null, data_fine: v.data_fine || null,
+    ora_inizio: v.ora_inizio || null, ora_fine: v.ora_fine || null, location_id: v.location_id || null,
+    videomaker_id: v.videomaker_id || null, fonte: v.fonte || null, preparativi: v.preparativi,
+    pagina_congiunta: v.pagina_congiunta, note_private: v.note_private || null,
+    galleria_url: v.galleria_url || null, copertina_url: v.copertina_url || null,
+  }).eq("id", v.id);
+  if (error) return { errore: error.message };
+
+  for (const [i, s] of sposi.entries()) {
+    const x = s.data!;
+    const vuoto = Object.values(x).every((y) => !y);
+    if (vuoto) continue;
+    const { error: e } = await supabase.from("sposo").upsert({
+      matrimonio_id: v.id, ordine: i + 1, nome: x.nome || null, telefono: x.telefono || null, email: x.email || null,
+      codice_fiscale: x.codice_fiscale ? x.codice_fiscale.toUpperCase() : null,
+      indirizzo: x.indirizzo || null, indirizzo_preparativi: x.indirizzo_preparativi || null,
+    }, { onConflict: "matrimonio_id,ordine" });
+    if (e) return { errore: e.message };
+  }
+  revalidatePath(`/admin/matrimoni/${v.id}`);
+  return { ok: true };
+}
+
+// ---------- Preventivo ----------
+
+const Prev = z.object({
+  id: z.string().uuid(), matrimonio_id: z.string().uuid(), formula_id: uuid,
+  proponi_video: spunta, proponi_prewedding: spunta, proponi_op2_ibrido: spunta,
+  prezzi: testo(2000),
+});
+
+export async function salvaPreventivo(_: Esito, fd: FormData): Promise<Esito> {
+  const d = Prev.safeParse(campi(fd));
+  if (!d.success) return { errore: "Dati del preventivo non validi." };
+  const v = d.data;
+  let prezzi: Record<string, number>;
+  try { prezzi = leggiPrezziSpeciali(v.prezzi); } catch { return { errore: "Prezzi speciali: una riga per voce, \"codice = euro\"." }; }
+  if (Object.values(prezzi).some((n) => !Number.isFinite(n) || n < 0)) {
+    return { errore: "Prezzi speciali: una riga per voce, \"codice = euro\" (es. servizio = 1100)." };
+  }
+  const preselezione = fd.getAll("preselezione").map(String).filter((c) => /^[\w-]{1,40}$/.test(c));
+
+  const supabase = await supabaseSessione();
+  const { data: p } = await supabase.from("preventivo").select("confermato_il").eq("id", v.id).single();
+  if (p?.confermato_il) return { errore: "Il preventivo è già confermato: non si modifica più." };
+
+  const r1 = await supabase.from("matrimonio").update({ formula_id: v.formula_id || null }).eq("id", v.matrimonio_id);
+  const r2 = await supabase.from("preventivo").update({
+    opzioni: { proponi_video: v.proponi_video, proponi_prewedding: v.proponi_prewedding, proponi_op2_ibrido: v.proponi_op2_ibrido },
+    prezzi_speciali: prezzi, preselezione,
+  }).eq("id", v.id);
+  if (r1.error || r2.error) return { errore: (r1.error ?? r2.error)!.message };
+  revalidatePath(`/admin/matrimoni/${v.matrimonio_id}`);
+  return { ok: true };
+}
+
+/** Segna il preventivo come inviato (data di oggi) e porta lo stato a "Preventivo". */
+export async function segnaInviato(fd: FormData) {
+  const id = z.string().uuid().parse(fd.get("id"));
+  const mid = z.string().uuid().parse(fd.get("matrimonio_id"));
+  const supabase = await supabaseSessione();
+  await supabase.from("preventivo").update({ inviato_il: new Date().toISOString() }).eq("id", id);
+  await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", mid).eq("stato", "qte_to_contact");
+  revalidatePath(`/admin/matrimoni/${mid}`);
+}
+
+/** Nuovo link Sposi: revoca quello attuale (chi ha il vecchio link non entra più). */
+export async function rigeneraLink(fd: FormData) {
+  const mid = z.string().uuid().parse(fd.get("matrimonio_id"));
+  const supabase = await supabaseSessione();
+  await supabase.from("link_sposi").update({ revocato_il: new Date().toISOString() }).eq("matrimonio_id", mid).is("revocato_il", null);
+  await supabase.from("link_sposi").insert({ matrimonio_id: mid, token: nuovoToken() });
+  revalidatePath(`/admin/matrimoni/${mid}`);
+}
