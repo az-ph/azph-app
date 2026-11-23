@@ -4,6 +4,7 @@ export type Mail = {
   da: string;            // "Nome <indirizzo@dominio>"
   a: string[];
   cc?: string[];
+  ccn?: string[];
   rispondiA?: string;
   oggetto: string;
   html: string;
@@ -25,7 +26,7 @@ export async function inviaMail(m: Mail): Promise<{ ok: true } | { ok: false; er
         ...(m.idempotenza ? { "Idempotency-Key": m.idempotenza } : {}),
       },
       body: JSON.stringify({
-        from: m.da, to: m.a, cc: m.cc?.length ? m.cc : undefined, reply_to: m.rispondiA,
+        from: m.da, to: m.a, cc: m.cc?.length ? m.cc : undefined, bcc: m.ccn?.length ? m.ccn : undefined, reply_to: m.rispondiA,
         subject: m.oggetto, html: m.html, text: m.testo,
       }),
       signal: AbortSignal.timeout(8000),

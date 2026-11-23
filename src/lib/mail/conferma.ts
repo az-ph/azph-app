@@ -105,7 +105,7 @@ function corpoNotifica(c: DatiConferma, esito: string, videomaker: string | null
     ? (c.video.length ? `Pacchetto foto + video, totale ${euro(c.totaleFoto + c.totaleVideo)}` : "⚠️ Hanno tolto il video: solo fotografia a prezzo pieno")
     : "";
 
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#383838;max-width:560px">` +
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#383838">` +
     p(`<b style="font-size:16px">${escH(c.nomi)}</b> hanno confermato il preventivo (${escH(c.codice)})`, "margin-top:0") +
     p(escH([data(c.dataInizio), c.location].filter(Boolean).join(" – "))) +
     p(escH(esito), "padding:8px 10px;background:#eef2ea") +

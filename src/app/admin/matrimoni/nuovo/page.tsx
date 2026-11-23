@@ -4,6 +4,7 @@ import { creaMatrimonio } from "../azioni";
 import { Modulo } from "../modulo";
 import { Campo, Riquadro, Spunta, inp } from "../campi";
 import { Testata } from "../../ui";
+import { AvvisoData } from "../avviso-data";
 import Link from "next/link";
 
 export default async function NuovoMatrimonio() {
@@ -22,7 +23,7 @@ export default async function NuovoMatrimonio() {
       <Modulo azione={creaMatrimonio} etichetta="Crea e vai al preventivo" className="flex flex-col gap-4">
         <Riquadro titolo="Il Matrimonio">
           <div className="grid sm:grid-cols-2 gap-4">
-            <Campo etichetta="Data del Matrimonio"><input type="date" name="data_inizio" className={inp} /></Campo>
+            <div className="flex flex-col gap-2"><Campo etichetta="Data del Matrimonio"><input type="date" name="data_inizio" className={inp} /></Campo><AvvisoData /></div>
             <Campo etichetta="Ora della cerimonia"><input type="time" name="ora_inizio" className={inp} /></Campo>
             <Campo etichetta="Location">
               <select name="location_id" className={inp} defaultValue="">

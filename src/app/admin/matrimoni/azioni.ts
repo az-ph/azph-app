@@ -200,3 +200,13 @@ export async function eliminaIncasso(fd: FormData) {
   await supabase.from("pagamento").delete().eq("id", id).eq("matrimonio_id", mid);
   revalidatePath(`/admin/matrimoni/${mid}`);
 }
+
+// ---------- Data libera ----------
+
+export async function verificaData(iso: string, escludi?: string) {
+  const d = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).safeParse(iso);
+  const e = z.string().uuid().optional().safeParse(escludi || undefined);
+  if (!d.success || !e.success) return null;
+  const { controllaData } = await import("@/lib/admin/data-libera");
+  return controllaData(d.data, e.data);
+}
