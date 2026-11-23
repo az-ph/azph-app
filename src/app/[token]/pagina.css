@@ -340,3 +340,13 @@
 /* riepilogo della conferma: largo come il modulo, importi mai spezzati */
 #azp .riepilogo{max-width:52rem}
 #azp .riepilogo li > span:last-child{white-space:nowrap;flex:none}
+
+/* Recensioni prima della conferma */
+#azp .recensioni .citazioni{display:grid;gap:1.25rem;margin-top:1.5rem;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr))}
+#azp .recensioni figure{margin:0;background:var(--tinta,#e2e9da);padding:1.5rem 1.5rem 1.25rem;position:relative}
+#azp .recensioni blockquote{margin:0;font:italic 400 1.05rem/1.6 var(--corpo);text-align:left;hyphens:none}
+#azp .recensioni blockquote::before{content:'“';font:4rem/0 var(--titolo);color:var(--verde-scuro);display:block;height:1.6rem;margin-top:.9rem}
+#azp .recensioni figcaption{margin-top:.9rem;font:600 .95rem var(--corpo);color:var(--verde-scuro)}
+#azp .recensioni .tutte{margin-top:1.5rem;text-align:center}
+#azp .btn-secondario{display:inline-block;border:2px solid var(--verde-scuro);color:var(--verde-scuro);padding:.7rem 1.4rem;font:500 1rem var(--corpo);text-decoration:none}
+#azp .btn-secondario:hover{background:var(--verde-scuro);color:#fff}

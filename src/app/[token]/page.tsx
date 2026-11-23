@@ -180,7 +180,8 @@ export default async function PaginaSposi({ params, searchParams }: {
           servizioSenzaVideo={duo ? calcolaOfferta(calcolo.listino, calcolo.preventivo, { conVideo: false }).servizio.prezzo : null}
           preselezione={p.preventivo?.preselezione ?? []}
           sposi={p.sposi}
-          blocchi={{ opzionali: blocco("opzionali"), album: blocco("album"), video: blocco("video") }}
+          blocchi={{ opzionali: blocco("opzionali"), album: blocco("album"), video: blocco("video"), recensioni: blocco("recensioni") }}
+          urlRecensioni={p.urlRecensioni}
           contratto={p.contratto?.testo ?? ""}
           videomaker={p.matrimonio.videomaker}
         />
