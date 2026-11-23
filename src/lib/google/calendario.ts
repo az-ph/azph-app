@@ -78,9 +78,14 @@ export function localeRoma(iso: string): string {
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
 
-function tempi(e: EventoCalendario) {
-  if ("giorni" in e) return { start: { date: e.giorni.dal }, end: { date: giornoDopo(e.giorni.al) } };
-  return { start: { dateTime: `${e.inizio}:00`, timeZone: FUSO }, end: { dateTime: `${piuMinuti(e.inizio, e.minuti)}:00`, timeZone: FUSO } };
+// I campi dell'altro tipo vanno azzerati: con PATCH Google unisce i vecchi e i nuovi,
+// e un evento con sia "date" sia "dateTime" viene rifiutato (400 invalid).
+export function tempi(e: EventoCalendario) {
+  if ("giorni" in e) return { start: { date: e.giorni.dal, dateTime: null, timeZone: null }, end: { date: giornoDopo(e.giorni.al), dateTime: null, timeZone: null } };
+  return {
+    start: { date: null, dateTime: `${e.inizio}:00`, timeZone: FUSO },
+    end: { date: null, dateTime: `${piuMinuti(e.inizio, e.minuti)}:00`, timeZone: FUSO },
+  };
 }
 
 export function giornoDopo(iso: string): string {

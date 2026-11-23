@@ -25,6 +25,7 @@ describe("evento del Matrimonio", () => {
     expect(eventoMatrimonio({ ...base, stato: "clo_lost" })).toBeNull();
     expect(eventoMatrimonio({ ...base, stato: "qte_to_contact" })).toBeNull();
     expect(eventoMatrimonio({ ...base, dataInizio: null })).toBeNull();
+    expect(eventoMatrimonio({ ...base, oraInizio: "00:00:00" })).toMatchObject({ inizio: "2026-12-12T08:00" });
     expect(eventoMatrimonio({ ...base, timeline: [], dataFine: "2026-12-01" })).toMatchObject({ giorni: { dal: "2026-12-12", al: "2026-12-12" } });
   });
   it("riprende l'evento del foglio solo se ce n'è uno con gli stessi nomi", () => {
