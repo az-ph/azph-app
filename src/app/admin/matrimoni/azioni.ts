@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { istanteDaRoma } from "@/lib/admin/ora-roma";
 import { sincronizzaKickoff } from "@/lib/admin/kickoff";
+import { sincronizzaMatrimonio, sincronizzaTutti } from "@/lib/admin/sincronizza-calendario";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { euroInCentesimi, leggiPrezziSpeciali } from "@/lib/listino/motore";
 import { leggiTimeline } from "@/lib/admin/timeline";
@@ -50,6 +51,7 @@ export async function creaMatrimonio(_: Esito, fd: FormData): Promise<Esito> {
     },
   });
   if (error || !id) return { errore: "Non sono riuscito a creare il Matrimonio: " + (error?.message ?? "") };
+  await sincronizzaMatrimonio(supabase, id as string, await baseUrl());
   redirect(`/admin/matrimoni/${id}?tab=preventivo`);
 }
 
@@ -99,7 +101,8 @@ export async function salvaDati(_: Esito, fd: FormData): Promise<Esito> {
     if (e) return { errore: e.message };
   }
   revalidatePath(`/admin/matrimoni/${v.id}`);
-  const avviso = await sincronizzaKickoff(v.id, await baseUrl());
+  const b = await baseUrl();
+  const avviso = [await sincronizzaKickoff(v.id, b), await sincronizzaMatrimonio(supabase, v.id, b)].filter(Boolean).join(" ");
   if (avviso) return { ok: true, errore: avviso };
   return { ok: true };
 }
@@ -144,6 +147,7 @@ export async function segnaInviato(fd: FormData) {
   const supabase = await supabaseSessione();
   await supabase.from("preventivo").update({ inviato_il: new Date().toISOString() }).eq("id", id);
   await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", mid).eq("stato", "qte_to_contact");
+  await sincronizzaMatrimonio(supabase, mid, await baseUrl());
   revalidatePath(`/admin/matrimoni/${mid}`);
 }
 
@@ -168,7 +172,8 @@ export async function salvaTimeline(_: Esito, fd: FormData): Promise<Esito> {
   const { error } = await supabase.rpc("admin_salva_timeline", { mid: mid.data, righe });
   if (error) return { errore: error.message };
   revalidatePath(`/admin/matrimoni/${mid.data}`);
-  return { ok: true };
+  const avviso = await sincronizzaMatrimonio(supabase, mid.data, await baseUrl());
+  return avviso ? { ok: true, errore: avviso } : { ok: true };
 }
 
 // ---------- Pagamenti ----------
@@ -235,4 +240,12 @@ export async function salvaKickoff(_: Esito, fd: FormData): Promise<Esito> {
 async function baseUrl(): Promise<string> {
   const h = await headers();
   return process.env.URL || `https://${h.get("host") ?? ""}`;
+}
+
+// ---------- Calendario: tutti i Matrimoni ----------
+
+export async function sincronizzaCalendario(dopo: string | null) {
+  const d = z.string().uuid().nullable().safeParse(dopo);
+  if (!d.success) return null;
+  return sincronizzaTutti(await supabaseSessione(), await baseUrl(), d.data);
 }

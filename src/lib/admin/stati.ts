@@ -53,3 +53,6 @@ export function nomiBrevi(sposi: { ordine: number; nome: string | null }[]): str
 export function prezziInTesto(p: Record<string, number>): string {
   return Object.entries(p).map(([k, v]) => `${k} = ${(v / 100).toLocaleString("it-IT", { maximumFractionDigits: 2 }).replace(/\./g, "")}`).join("\n");
 }
+
+/** "Anna Rossi" → "Anna". */
+export const primoNomeDi = (nome: string | null | undefined) => (nome ?? "").trim().split(/\s+/)[0] ?? "";

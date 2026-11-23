@@ -1,5 +1,6 @@
 import { FormImporta } from "./form";
 import { AggiornaTesti } from "./aggiorna-testi";
+import { SincronizzaCalendario } from "./sincronizza";
 import { Testata } from "../ui";
 
 export default function PaginaImporta() {
@@ -13,6 +14,7 @@ export default function PaginaImporta() {
       </ol>
       <FormImporta />
       <AggiornaTesti />
+      <SincronizzaCalendario />
     </div>
   );
 }
