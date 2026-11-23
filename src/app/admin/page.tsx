@@ -70,8 +70,8 @@ function Elenco({ titolo, righe }: { titolo: string; righe: Riga[] }) {
               const gg = giorniDa(m.data_inizio);
               const href = `/admin/matrimoni/${m.id}`;
               return (
-                <tr key={m.id} className="f-riga">
-                  <td className="font-medium"><Link href={href} className="hover:underline underline-offset-4">{nomiBrevi(m.sposi) || "Senza nomi"}</Link></td>
+                <tr key={m.id} className="f-riga relative cursor-pointer">
+                  <td className="font-medium"><Link href={href} className="hover:underline underline-offset-4 after:absolute after:inset-0">{nomiBrevi(m.sposi) || "Senza nomi"}</Link></td>
                   <td className="whitespace-nowrap">
                     <span className="tabular-nums">{data(m.data_inizio) || "—"}</span>
                     {m.data_inizio && <span className="block text-xs text-tenue">{dataEstesa(m.data_inizio).split(" ")[0]}{gg != null && gg >= 0 && gg <= 60 ? ` · tra ${gg} gg` : ""}</span>}
@@ -81,7 +81,7 @@ function Elenco({ titolo, righe }: { titolo: string; righe: Riga[] }) {
                     <PillStato stato={m.stato} />
                     {m.stato.startsWith("qte") && !m.preventivo.length && <span className="ml-2 text-xs text-errore">senza preventivo</span>}
                   </td>
-                  <td className="text-right">{link ? <a href={`/${link.token}`} target="_blank" rel="noopener noreferrer" className="f-link text-sm">Apri ↗</a> : <span className="text-tenue">—</span>}</td>
+                  <td className="text-right relative z-10">{link ? <a href={`/${link.token}`} target="_blank" rel="noopener noreferrer" className="f-link text-sm">Apri ↗</a> : <span className="text-tenue">—</span>}</td>
                 </tr>
               );
             })}
