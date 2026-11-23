@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import type { Esito } from "./azioni";
 
 /** Modulo con salvataggio e messaggio di esito accanto al pulsante. */
@@ -9,7 +9,8 @@ export function Modulo({ azione, etichetta = "Salva", children, className, compa
 }) {
   const [esito, invia, inCorso] = useActionState(azione, null);
   return (
-    <form action={invia} className={className}>
+    // onSubmit invece di action: React non riporta i campi ai valori di prima dopo il salvataggio
+    <form className={className} onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => invia(fd)); }}>
       {children}
       <div className={compatto ? "flex items-center gap-2" : "mt-5 flex flex-wrap items-center gap-4"}>
         <button className={`f-btn f-btn-pieno ${compatto ? "!py-1.5 !px-3" : ""}`} disabled={inCorso}>

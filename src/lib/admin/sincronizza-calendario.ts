@@ -42,7 +42,7 @@ export async function sincronizzaMatrimonio(db: Db, mid: string, base: string): 
     if (nuovo !== m.calendario_evento) await db.from("matrimonio").update({ calendario_evento: nuovo }).eq("id", mid);
     return null;
   } catch (e) {
-    return `Dati salvati, ma il calendario non è stato aggiornato (${e instanceof Error ? e.message : "errore"}).`;
+    return `${m.codice_id}: dati salvati, ma il calendario non è stato aggiornato (${e instanceof Error ? e.message : "errore"}).`;
   }
 }
 
