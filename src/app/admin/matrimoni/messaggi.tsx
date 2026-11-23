@@ -14,6 +14,7 @@ export function Messaggi({ mid, pronti, suggerito, persone, stile, firma }: {
   const [chiave, setChiave] = useState<ChiaveMessaggio>(suggerito);
   const [bozze, setBozze] = useState<Record<string, Bozza>>(() => Object.fromEntries(pronti.map((p) => [p.chiave, { oggetto: p.oggetto, mail: p.mail, whatsapp: p.whatsapp }])));
   const [anteprima, setAnteprima] = useState(false);
+  const [conferma, setConferma] = useState(false);
   const [idem, setIdem] = useState(() => crypto.randomUUID());
   const [esito, invia, inCorso] = useActionState(async (s: Parameters<typeof inviaMessaggio>[0], fd: FormData) => {
     const r = await inviaMessaggio(s, fd);
@@ -34,7 +35,7 @@ export function Messaggi({ mid, pronti, suggerito, persone, stile, firma }: {
       <nav className="f-schede" aria-label="Messaggio">
         {pronti.map((x) => (
           <a key={x.chiave} href="#" aria-current={x.chiave === chiave ? "page" : undefined}
-            onClick={(e) => { e.preventDefault(); setChiave(x.chiave); }}>{x.titolo}</a>
+            onClick={(e) => { e.preventDefault(); setChiave(x.chiave); setConferma(false); }}>{x.titolo}</a>
         ))}
       </nav>
 
@@ -42,8 +43,7 @@ export function Messaggi({ mid, pronti, suggerito, persone, stile, firma }: {
         <div className="f-carta p-5 text-sm">Manca il modello di questo messaggio: vai in <b>Importa e testi</b> e premi <b>Aggiorna i testi</b>.</div>
       ) : (
         <div className="grid lg:grid-cols-[1fr_22rem] gap-4 items-start">
-          <form action={invia} className="f-carta p-5 sm:p-6 flex flex-col gap-4"
-            onSubmit={(e) => { if (!confirm(`Inviare la mail "${b.oggetto}"?`)) e.preventDefault(); }}>
+          <form action={(fd) => { setConferma(false); invia(fd); }} className="f-carta p-5 sm:p-6 flex flex-col gap-4">
             <input type="hidden" name="matrimonio_id" value={mid} />
             <input type="hidden" name="chiave" value={chiave} />
             <input type="hidden" name="idem" value={idem} />
@@ -77,7 +77,14 @@ export function Messaggi({ mid, pronti, suggerito, persone, stile, firma }: {
             )}
             <input type="hidden" name="corpo" value={b.mail} />
             <div className="flex flex-wrap items-center gap-4">
-              <button className="f-btn f-btn-pieno" disabled={inCorso || !conMail.length}>{inCorso ? "Invio…" : "Invia la mail"}</button>
+              {conferma ? (
+                <>
+                  <button className="f-btn f-btn-pieno" disabled={inCorso}>Sì, invia adesso</button>
+                  <button type="button" className="f-btn" onClick={() => setConferma(false)}>Annulla</button>
+                </>
+              ) : (
+                <button type="button" className="f-btn f-btn-pieno" disabled={inCorso || !conMail.length} onClick={() => setConferma(true)}>{inCorso ? "Invio…" : "Invia la mail"}</button>
+              )}
               {esito?.ok && <span className="text-ok text-sm font-medium" role="status">Inviata ✓ (copia a te in Ccn)</span>}
               {esito?.errore && <span className="text-errore text-sm" role="alert">{esito.errore}</span>}
             </div>
