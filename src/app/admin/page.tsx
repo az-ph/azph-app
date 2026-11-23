@@ -1,93 +1,125 @@
 import Link from "next/link";
 import { supabaseSessione } from "@/lib/supabase/sessione";
-import { data, dataEstesa } from "@/lib/formato";
-import { nomiBrevi } from "@/lib/admin/stati";
-import { Kpi, PillStato, Testata, giorniDa } from "./ui";
+import { data, dataEstesa, euroBreve } from "@/lib/formato";
+import { STATI, nomiBrevi } from "@/lib/admin/stati";
+import { GIORNI_FOLLOWUP, GIORNI_KICKOFF, GIORNI_PROSSIMI, cosaFare, giorniTra, type MatrimonioOggi } from "@/lib/admin/oggi";
+import { salvaKickoff } from "./matrimoni/azioni";
+import { Modulo } from "./matrimoni/modulo";
+import { Kpi, PillStato, Testata } from "./ui";
 
-type Riga = {
-  id: string; codice_id: string; stato: string; data_inizio: string | null;
-  link: { token: string; revocato_il: string | null }[]; sposi: { ordine: number; nome: string | null }[];
-  preventivo: { id: string; inviato_il: string | null }[];
-};
+const APERTI = STATI.map((s) => s.valore).filter((v) => v.startsWith("qte") || v.startsWith("wdg"));
+const NOME_RATA = { acconto: "Acconto", saldo: "Saldo", album: "Album" } as const;
 
-export default async function Matrimoni() {
+export default async function Oggi() {
   const supabase = await supabaseSessione();
   const { data: righe, error } = await supabase.from("matrimonio")
-    .select("id, codice_id, stato, data_inizio, link:link_sposi ( token, revocato_il ), sposi:sposo ( ordine, nome ), preventivo ( id, inviato_il )")
-    .in("stato", ["qte_to_contact", "qte_quote", "wdg_confermato", "wdg_lightroom", "wdg_invoice", "wdg_album_todo", "wdg_album"])
-    .order("data_inizio", { ascending: true, nullsFirst: false });
-
+    .select("id, codice_id, stato, data_inizio, kickoff_il, sposi:sposo ( ordine, nome ), preventivo ( versione, inviato_il, confermato_il )")
+    .in("stato", APERTI);
   if (error) return <p className="text-errore">Il database non risponde: {error.message}</p>;
-  const matrimoni = (righe ?? []) as unknown as Riga[];
-  const nuovo = <Link href="/admin/matrimoni/nuovo" className="f-btn f-btn-pieno">+ Nuovo Matrimonio</Link>;
+  const ids = (righe ?? []).map((m) => m.id);
+  const idsPreventivi = (righe ?? []).filter((m) => m.stato.startsWith("qte")).map((m) => m.id);
+  const [importi, incassi, aperture] = await Promise.all([
+    supabase.from("importo").select("matrimonio_id, voce, importo").in("matrimonio_id", ids),
+    supabase.from("pagamento").select("matrimonio_id, tipo, importo, pagato_il").in("matrimonio_id", ids),
+    supabase.from("evento_pagina").select("matrimonio_id, avvenuto_il").eq("tipo", "apertura").in("matrimonio_id", idsPreventivi),
+  ]);
 
-  if (!matrimoni.length) {
-    return (
-      <>
-        <Testata titolo="Matrimoni" azioni={nuovo} />
-        <div className="f-carta p-8 text-center">
-          <p>Nessun Matrimonio in corso.</p>
-          <p className="mt-3"><Link href="/admin/importa" className="f-link">Importa i dati dal foglio Matrimoni</Link></p>
-        </div>
-      </>
-    );
-  }
-
-  const preventivi = matrimoni.filter((m) => m.stato.startsWith("qte"));
-  const confermati = matrimoni.filter((m) => m.stato.startsWith("wdg"));
-  const futuri = confermati.filter((m) => (giorniDa(m.data_inizio) ?? -1) >= 0);
-  const prossimo = futuri[0];
-  const gg = giorniDa(prossimo?.data_inizio);
-  const anno = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" }).slice(0, 4);
-  const inAnno = (a: string) => confermati.filter((m) => m.data_inizio?.startsWith(a)).length;
-  const daMandare = preventivi.filter((m) => !m.preventivo.some((p) => p.inviato_il)).length;
+  const elenco: MatrimonioOggi[] = (righe ?? []).map((m) => {
+    const p = [...(m.preventivo as { versione: number; inviato_il: string | null; confermato_il: string | null }[])].sort((a, b) => b.versione - a.versione)[0];
+    const ap = (aperture.data ?? []).filter((x) => x.matrimonio_id === m.id).map((x) => x.avvenuto_il).sort();
+    return {
+      id: m.id, codice: m.codice_id, stato: m.stato, data: m.data_inizio, kickoff: m.kickoff_il,
+      nomi: nomiBrevi(m.sposi as { ordine: number; nome: string | null }[]) || m.codice_id,
+      preventivo: p ? { inviato: p.inviato_il, confermato: p.confermato_il } : null,
+      aperture: ap.length, ultimaApertura: ap.at(-1) ?? null,
+      importi: Object.fromEntries((importi.data ?? []).filter((x) => x.matrimonio_id === m.id).map((x) => [x.voce, x.importo])),
+      incassi: (incassi.data ?? []).filter((x) => x.matrimonio_id === m.id),
+    };
+  });
+  const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+  const f = cosaFare(elenco, oggi);
+  const daIncassare = f.pagamenti.reduce((t, p) => t + p.manca, 0);
+  const scheda = (m: MatrimonioOggi, tab?: string) => `/admin/matrimoni/${m.id}${tab ? `?tab=${tab}` : ""}`;
+  const ora = Number(new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
 
   return (
     <>
-      <Testata titolo="Matrimoni" sotto={`${matrimoni.length} in corso`} azioni={nuovo} />
+      <Testata titolo={ora < 13 ? "Buongiorno" : ora < 18 ? "Buon pomeriggio" : "Buonasera"} sotto={`Oggi è ${dataEstesa(oggi)}`}
+        azioni={<Link href="/admin/matrimoni/nuovo" className="f-btn f-btn-pieno">+ Nuovo Matrimonio</Link>} />
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-        <Kpi etichetta="Prossimo Matrimonio" valore={gg == null ? "—" : gg === 0 ? "Oggi" : `tra ${gg} gg`} nota={prossimo ? `${nomiBrevi(prossimo.sposi)} · ${data(prossimo.data_inizio)}` : undefined} />
-        <Kpi etichetta="Preventivi aperti" valore={preventivi.length} nota={daMandare ? `${daMandare} da inviare` : "tutti inviati"} tono={daMandare ? "avviso" : "ok"} />
-        <Kpi etichetta={`Confermati ${anno}`} valore={inAnno(anno)} nota={`${inAnno(String(+anno + 1))} nel ${+anno + 1}`} />
-        <Kpi etichetta="In lavorazione" valore={confermati.length - futuri.length} nota="foto, saldo, album" />
+        <Kpi etichetta="Da incassare" valore={daIncassare ? euroBreve(daIncassare) : "—"} nota={f.pagamenti.some((p) => p.scaduto) ? `${f.pagamenti.filter((p) => p.scaduto).length} scaduti` : "niente di scaduto"} tono={f.pagamenti.some((p) => p.scaduto) ? "avviso" : "ok"} />
+        <Kpi etichetta="Kick-off da fissare" valore={f.kickoff.length} nota={`Matrimoni entro ${GIORNI_KICKOFF} giorni`} tono={f.kickoff.length ? "avviso" : "ok"} />
+        <Kpi etichetta="Preventivi da seguire" valore={f.daInviare.length + f.followup.length} nota={`${f.daInviare.length} da inviare · ${f.followup.length} da risentire`} />
+        <Kpi etichetta="Prossimi Matrimoni" valore={f.prossimi.length} nota={`nei prossimi ${GIORNI_PROSSIMI} giorni`} />
       </div>
-      {preventivi.length > 0 && <Elenco titolo="Preventivi" righe={preventivi} />}
-      {confermati.length > 0 && <Elenco titolo="Confermati" righe={confermati} />}
+
+      <div className="grid xl:grid-cols-2 gap-4 items-start">
+        <Sezione titolo="Soldi e scadenze" vuoto="Nessun pagamento scaduto o in scadenza.">
+          {f.pagamenti.map((p, i) => (
+            <Riga key={i} href={scheda(p.m, "pagamenti")} nomi={p.m.nomi}
+              dettaglio={`${NOME_RATA[p.rata]}${p.scadenza ? ` · scade il ${data(p.scadenza)}` : " · alla consegna"}`}
+              destra={<span className={`tabular-nums font-medium ${p.scaduto ? "text-avviso" : ""}`}>{euroBreve(p.manca)}</span>} />
+          ))}
+        </Sezione>
+
+        <Sezione titolo="Kick-off da fissare" vuoto="Nessun kick-off da fissare.">
+          {f.kickoff.map((m) => (
+            <li key={m.id} className="flex flex-wrap items-center justify-between gap-3">
+              <span><Link href={scheda(m, "dati")} className="font-medium hover:underline underline-offset-4">{m.nomi}</Link>
+                <span className="block text-xs text-tenue">Matrimonio il {data(m.data)} · tra {giorniTra(oggi, m.data!)} giorni</span></span>
+              <Modulo azione={salvaKickoff} etichetta="Segna" compatto className="flex items-center gap-2">
+                <input type="hidden" name="matrimonio_id" value={m.id} />
+                <input type="date" name="kickoff_il" required aria-label={`Data del kick-off di ${m.nomi}`} className="f-inp !w-auto !py-1.5 text-sm" />
+              </Modulo>
+            </li>
+          ))}
+        </Sezione>
+
+        <Sezione titolo="Preventivi da seguire" vuoto="Nessun preventivo da inviare o da risentire.">
+          {f.daInviare.map((m) => (
+            <Riga key={m.id} href={scheda(m, m.preventivo ? "messaggi" : "preventivo")} nomi={m.nomi}
+              dettaglio={`${m.preventivo ? "Preventivo da inviare" : "Preventivo da preparare"}${m.data ? ` · Matrimonio il ${data(m.data)}` : ""}`}
+              destra={<PillStato stato={m.stato} />} />
+          ))}
+          {f.followup.map((m) => (
+            <Riga key={m.id} href={scheda(m, "messaggi")} nomi={m.nomi}
+              dettaglio={`Inviato il ${data(m.preventivo!.inviato)} · ${m.aperture ? `aperto ${m.aperture} ${m.aperture === 1 ? "volta" : "volte"}, l'ultima il ${data(m.ultimaApertura)}` : "mai aperto"}`}
+              destra={<span className="text-xs text-avviso whitespace-nowrap">da {giorniTra(m.preventivo!.inviato!, oggi)} gg</span>} />
+          ))}
+        </Sezione>
+
+        <Sezione titolo="Prossimi Matrimoni" vuoto={`Nessun Matrimonio nei prossimi ${GIORNI_PROSSIMI} giorni.`}>
+          {f.prossimi.map((m) => {
+            const gg = giorniTra(oggi, m.data!);
+            return (
+              <Riga key={m.id} href={scheda(m, "timeline")} nomi={m.nomi} dettaglio={dataEstesa(m.data)}
+                destra={<span className="text-xs whitespace-nowrap">{gg === 0 ? "oggi" : gg === 1 ? "domani" : `tra ${gg} gg`}</span>} />
+            );
+          })}
+        </Sezione>
+      </div>
+      <p className="text-xs text-tenue mt-6">Follow-up dopo {GIORNI_FOLLOWUP} giorni senza conferma · acconto a 3 settimane dal Matrimonio · saldo e album per i Matrimoni nello stato Saldo.</p>
     </>
   );
 }
 
-function Elenco({ titolo, righe }: { titolo: string; righe: Riga[] }) {
+function Sezione({ titolo, vuoto, children }: { titolo: string; vuoto: string; children: React.ReactNode[] }) {
+  const n = children.flat().filter(Boolean).length;
   return (
-    <section className="mb-8">
-      <h2 className="text-sm font-semibold mb-3">{titolo} <span className="text-tenue font-normal">· {righe.length}</span></h2>
-      <div className="f-carta overflow-x-auto">
-        <table className="f-tabella">
-          <thead><tr><th>Sposi</th><th>Data</th><th className="hidden md:table-cell">Codice</th><th>Stato</th><th className="text-right">Pagina</th></tr></thead>
-          <tbody>
-            {righe.map((m) => {
-              const link = m.link.find((l) => !l.revocato_il);
-              const gg = giorniDa(m.data_inizio);
-              const href = `/admin/matrimoni/${m.id}`;
-              return (
-                <tr key={m.id} className="f-riga relative cursor-pointer">
-                  <td className="font-medium"><Link href={href} className="hover:underline underline-offset-4 after:absolute after:inset-0">{nomiBrevi(m.sposi) || "Senza nomi"}</Link></td>
-                  <td className="whitespace-nowrap">
-                    <span className="tabular-nums">{data(m.data_inizio) || "—"}</span>
-                    {m.data_inizio && <span className="block text-xs text-tenue">{dataEstesa(m.data_inizio).split(" ")[0]}{gg != null && gg >= 0 && gg <= 60 ? ` · tra ${gg} gg` : ""}</span>}
-                  </td>
-                  <td className="hidden md:table-cell tabular-nums text-tenue">{m.codice_id}</td>
-                  <td>
-                    <PillStato stato={m.stato} />
-                    {m.stato.startsWith("qte") && !m.preventivo.length && <span className="ml-2 text-xs text-errore">senza preventivo</span>}
-                  </td>
-                  <td className="text-right relative z-10">{link ? <a href={`/${link.token}`} target="_blank" rel="noopener noreferrer" className="f-link text-sm">Apri ↗</a> : <span className="text-tenue">—</span>}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <section className="f-carta p-5">
+      <h2 className="text-[0.9375rem] font-semibold mb-3">{titolo} {n > 0 && <span className="text-tenue font-normal">· {n}</span>}</h2>
+      {n ? <ul className="f-righe text-sm">{children}</ul> : <p className="text-sm text-ok">✓ {vuoto}</p>}
     </section>
+  );
+}
+
+function Riga({ href, nomi, dettaglio, destra }: { href: string; nomi: string; dettaglio: string; destra: React.ReactNode }) {
+  return (
+    <li className="items-center">
+      <span className="min-w-0"><Link href={href} className="font-medium hover:underline underline-offset-4">{nomi}</Link>
+        <span className="block text-xs text-tenue">{dettaglio}</span></span>
+      {destra}
+    </li>
   );
 }

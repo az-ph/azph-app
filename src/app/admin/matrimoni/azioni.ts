@@ -57,7 +57,7 @@ const Dati = z.object({
   location_id: uuid, videomaker_id: uuid,
   fonte: z.string().trim().max(20).regex(/^[\w .-]*$/).optional().default(""),
   preparativi: spunta, pagina_congiunta: spunta, note_private: testo(4000),
-  galleria_url: testo(2000), copertina_url: testo(500),
+  galleria_url: testo(2000), copertina_url: testo(500), kickoff_il: data,
 });
 const SposoForm = z.object({
   nome: testo(120), telefono: testo(40), email: testo(160), codice_fiscale: testo(16),
@@ -79,7 +79,7 @@ export async function salvaDati(_: Esito, fd: FormData): Promise<Esito> {
     ora_inizio: v.ora_inizio || null, ora_fine: v.ora_fine || null, location_id: v.location_id || null,
     videomaker_id: v.videomaker_id || null, fonte: v.fonte || null, preparativi: v.preparativi,
     pagina_congiunta: v.pagina_congiunta, note_private: v.note_private || null,
-    galleria_url: v.galleria_url || null, copertina_url: v.copertina_url || null,
+    galleria_url: v.galleria_url || null, copertina_url: v.copertina_url || null, kickoff_il: v.kickoff_il || null,
   }).eq("id", v.id);
   if (error) return { errore: error.message };
 
@@ -209,4 +209,18 @@ export async function verificaData(iso: string, escludi?: string) {
   if (!d.success || !e.success) return null;
   const { controllaData } = await import("@/lib/admin/data-libera");
   return controllaData(d.data, e.data);
+}
+
+// ---------- Kick-off ----------
+
+export async function salvaKickoff(_: Esito, fd: FormData): Promise<Esito> {
+  const mid = z.string().uuid().safeParse(fd.get("matrimonio_id"));
+  const d = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).safeParse(fd.get("kickoff_il"));
+  if (!mid.success || !d.success) return { errore: "Scegli la data." };
+  const supabase = await supabaseSessione();
+  const { error } = await supabase.from("matrimonio").update({ kickoff_il: d.data }).eq("id", mid.data);
+  if (error) return { errore: error.message };
+  revalidatePath("/admin");
+  revalidatePath(`/admin/matrimoni/${mid.data}`);
+  return { ok: true };
 }
