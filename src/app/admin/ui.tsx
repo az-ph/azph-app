@@ -1,12 +1,8 @@
 import { ETICHETTA_STATO } from "@/lib/admin/stati";
 
-/** Colore della pillola di stato in base alla fase del flusso. */
+/** Pillola di stato: un colore per fase (vedi .f-stato in admin.css, chiaro e scuro). */
 export function PillStato({ stato }: { stato: string }) {
-  const tono = stato.startsWith("qte") ? "bg-avviso-fondo text-avviso"
-    : stato === "wdg_confermato" ? "bg-ok-fondo text-ok"
-    : stato.startsWith("wdg") ? "bg-attivo text-testo"
-    : "bg-morbido text-tenue";
-  return <span className={`f-pill ${tono}`}><span aria-hidden="true">●</span>{ETICHETTA_STATO[stato] ?? stato}</span>;
+  return <span className="f-pill f-stato" data-stato={stato}><span aria-hidden="true">●</span>{ETICHETTA_STATO[stato] ?? stato}</span>;
 }
 
 /** Riquadro con un numero in evidenza. */
