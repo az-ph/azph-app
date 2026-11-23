@@ -103,3 +103,22 @@
   background: var(--f-testo); color: var(--f-fondo); font-size: .75rem; font-weight: 500; padding: .25rem .5rem; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .12s; z-index: 20; }
 .fede .f-rail [data-etichetta]:hover::after, .fede .f-rail [data-etichetta]:focus-visible::after { opacity: 1; }
 @media (max-width: 639px) { .fede .f-rail [data-etichetta]::after { display: none; } }
+
+/* Stati: grigio da contattare, giallo preventivo, verde confermato, blu lavorazione, arancio saldo, viola album,
+   verde spento chiuso, rosso spento perso */
+.fede .f-stato { --c: #52525b; --f: #ececea; color: var(--c); background: var(--f); }
+.fede .f-stato[data-stato="qte_quote"] { --c: #854d0e; --f: #fdf3c4; }
+.fede .f-stato[data-stato="wdg_confermato"] { --c: #2f6b2a; --f: #e3f2df; }
+.fede .f-stato[data-stato="wdg_lightroom"] { --c: #1d4f91; --f: #e2ecfa; }
+.fede .f-stato[data-stato="wdg_invoice"] { --c: #9a3412; --f: #fde7d8; }
+.fede .f-stato[data-stato="wdg_album_todo"], .fede .f-stato[data-stato="wdg_album"] { --c: #6b2fa3; --f: #f0e6fa; }
+.fede .f-stato[data-stato="clo_completed"] { --c: #5f6f55; --f: #edf0ea; }
+.fede .f-stato[data-stato="clo_lost"], .fede .f-stato[data-stato="clo_no_answer"] { --c: #8f4a4a; --f: #f6e9e9; }
+.fede[data-tema="scuro"] .f-stato { --c: #c4c4bd; --f: rgb(255 255 255 / .08); }
+.fede[data-tema="scuro"] .f-stato[data-stato="qte_quote"] { --c: #f5d76e; --f: rgb(245 215 110 / .14); }
+.fede[data-tema="scuro"] .f-stato[data-stato="wdg_confermato"] { --c: #9ed693; --f: rgb(126 200 110 / .15); }
+.fede[data-tema="scuro"] .f-stato[data-stato="wdg_lightroom"] { --c: #94bdf5; --f: rgb(110 160 240 / .15); }
+.fede[data-tema="scuro"] .f-stato[data-stato="wdg_invoice"] { --c: #f5b07e; --f: rgb(240 150 90 / .15); }
+.fede[data-tema="scuro"] .f-stato[data-stato="wdg_album_todo"], .fede[data-tema="scuro"] .f-stato[data-stato="wdg_album"] { --c: #cfa8f2; --f: rgb(180 130 240 / .15); }
+.fede[data-tema="scuro"] .f-stato[data-stato="clo_completed"] { --c: #aebaa5; --f: rgb(156 175 136 / .12); }
+.fede[data-tema="scuro"] .f-stato[data-stato="clo_lost"], .fede[data-tema="scuro"] .f-stato[data-stato="clo_no_answer"] { --c: #d9a3a3; --f: rgb(220 130 130 / .13); }

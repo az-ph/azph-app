@@ -11,6 +11,9 @@ import { calcolaRate } from "@/lib/sposi/rate";
 import { scriviTimeline } from "@/lib/admin/timeline";
 import { CopiaLink, Modulo } from "../modulo";
 import { AvvisoData } from "../avviso-data";
+import { Messaggi } from "../messaggi";
+import { MESSAGGI, messaggioSuggerito, preparaMessaggi } from "@/lib/admin/messaggi";
+import { stileDaColori } from "@/lib/mail/testo";
 import { Campo, Riquadro, Spunta, inp } from "../campi";
 import { Kpi, PillStato, Testata, giorniDa } from "../../ui";
 
@@ -19,6 +22,7 @@ const SCHEDE = [
   { k: "preventivo", t: "Preventivo" },
   { k: "timeline", t: "Timeline" },
   { k: "pagamenti", t: "Pagamenti" },
+  { k: "messaggi", t: "Messaggi" },
   { k: "attivita", t: "Attività" },
 ] as const;
 
@@ -37,7 +41,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
     supabase.from("link_sposi").select("token").eq("matrimonio_id", id).is("revocato_il", null).order("creato_il", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("voce_listino").select("id, codice, categoria, voce, descrizione, prezzo, prezzo_barrato, gruppo, collegata_a, solo_se, riepilogo, collaboratore, attiva").order("codice"),
     supabase.from("location").select("id, nome, comune").order("nome"),
-    supabase.from("collaboratore").select("id, nome, codice").eq("ruolo", "videomaker").order("nome"),
+    supabase.from("collaboratore").select("id, nome, codice, telefono").eq("ruolo", "videomaker").order("nome"),
     supabase.from("timeline").select("giorno, ordine, ora, fase, luogo, nota_privata").eq("matrimonio_id", id).order("giorno").order("ordine"),
     supabase.from("pagamento").select("id, tipo, importo, scadenza, pagato_il, note").eq("matrimonio_id", id).order("pagato_il", { nullsFirst: false }),
     supabase.from("importo").select("voce, importo").eq("matrimonio_id", id),
@@ -166,6 +170,10 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
 
       {tab === "pagamenti" && (
         <SchedaPagamenti mid={mat.id} dataMatrimonio={mat.data_inizio} importi={importi.data ?? []} incassi={pagamenti.data ?? []} />
+      )}
+
+      {tab === "messaggi" && (
+        <SchedaMessaggi mat={mat} sposi={s} prev={prev.data} listinoRighe={listino.data ?? []} videomaker={videomaker.data ?? []} urlSposi={urlSposi} />
       )}
 
       {tab === "attivita" && (
@@ -422,4 +430,67 @@ function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
       </div>
     </div>
   );
+}
+
+async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlSposi }: {
+  mat: { id: string; data_inizio: string | null; formula_id: string | null; pagina_congiunta: boolean; videomaker_id: string | null };
+  sposi: { ordine: number; nome: string | null; email: string | null; telefono: string | null }[];
+  prev: { versione: number; opzioni: unknown; inviato_il: string | null; confermato_il: string | null } | null;
+  listinoRighe: RigaListino[]; videomaker: { id: string; nome: string; codice: string | null; telefono: string | null }[]; urlSposi: string | null;
+}) {
+  if (!urlSposi) return <Riquadro><p className="text-sm text-tenue">Questo Matrimonio non ha un link Sposi: crealo prima di mandare messaggi.</p></Riquadro>;
+  const supabase = await supabaseSessione();
+  const [imp, modelli, invii] = await Promise.all([
+    supabase.from("impostazioni").select("marchio, colori, firma, url_recensioni").single(),
+    supabase.from("modello_messaggio").select("chiave, oggetto, corpo_mail, corpo_whatsapp"),
+    supabase.from("invio").select("modello, canale, stato, inviato_il, created_at, errore").eq("matrimonio_id", mat.id).order("created_at", { ascending: false }).limit(30),
+  ]);
+  const marchio = (imp.data?.marchio ?? {}) as Record<string, string | undefined>;
+  const firma = { testo: imp.data?.firma || marchio.firma || marchio.titolare || "", html: marchio.firma_mail_html || undefined };
+
+  // Omaggi e video del preventivo attuale
+  const formula = listinoRighe.find((v) => v.id === mat.formula_id);
+  let omaggi: string[] = [];
+  let codiciVideo: string[] = [];
+  if (prev && formula) {
+    try {
+      const o = calcolaOfferta(listinoDaRighe(listinoRighe), preventivoDaRiga(prev as never, formula.codice, mat.pagina_congiunta));
+      omaggi = o.voci.filter((v) => v.categoria !== "formula" && (v.incluso || v.categoria === "omaggio")).map((v) => v.voce);
+      codiciVideo = o.voci.map((v) => listinoRighe.find((r) => r.codice === v.codice)?.collaboratore).filter((c): c is string => !!c);
+    } catch { /* senza offerta valida: niente omaggi nel testo */ }
+  }
+  const opz = (prev?.opzioni ?? {}) as Record<string, boolean>;
+  const vm = videomaker.find((v) => v.id === mat.videomaker_id) ?? videomaker.find((v) => v.codice && codiciVideo.includes(v.codice)) ?? videomaker[0];
+  const valori = {
+    NOMI: nomiBrevi(sposi), DATA: data(mat.data_inizio), DATA_ESTESA: dataEstesa(mat.data_inizio),
+    DATA_LUNGA: dataEstesa(mat.data_inizio).replace(/^\S+ /, ""),
+    LINK: urlSposi, LINK_TIMELINE: `${urlSposi}#azp-timeline`, VERSIONE: prev ? `v${String(prev.versione).padStart(2, "0")}` : "",
+    URL_RECENSIONI: imp.data?.url_recensioni ?? "", VIDEOMAKER: vm?.nome ?? "", VIDEOMAKER_TELEFONO: vm?.telefono ?? "",
+  };
+  const pronti = preparaMessaggi(modelli.data ?? [], valori, { omaggi, video: !!opz.proponi_video && !mat.pagina_congiunta, firma: firma.testo });
+  const persone = [...sposi].sort((a, b) => a.ordine - b.ordine).map((x) => ({ nome: x.nome ?? "", email: x.email?.trim() ?? "", telefono: x.telefono ?? "" }));
+  const titolo = Object.fromEntries([...MESSAGGI.map((m) => [m.chiave, m.titolo]), ["conferma_sposi", "Conferma"]]);
+  return (
+    <div className="flex flex-col gap-4">
+    <Messaggi mid={mat.id} pronti={pronti} persone={persone} firma={firma} stile={stileDaColori(imp.data?.colori as Record<string, string> | null)}
+      suggerito={messaggioSuggerito({ confermato: !!prev?.confermato_il, inviato: !!prev?.inviato_il, congiunta: mat.pagina_congiunta })} />
+      {(invii.data ?? []).length > 0 && (
+        <Riquadro titolo="Inviati" className="max-w-3xl">
+          <ul className="f-righe text-sm">{(invii.data ?? []).map((x, i) => (
+            <li key={i}>
+              <span>{titolo[x.modello ?? ""] ?? x.modello} <span className="text-tenue">· {x.canale === "mail" ? "mail" : "WhatsApp aperto"}</span>
+                {x.stato === "errore" && <span className="text-errore"> · non inviata{x.errore ? ` (${x.errore})` : ""}</span>}</span>
+              <span className="tabular-nums text-tenue">{dataOra(x.inviato_il ?? x.created_at)}</span>
+            </li>
+          ))}</ul>
+        </Riquadro>
+      )}
+    </div>
+  );
+}
+
+function dataOra(t: string) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    .formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  return `${p.day}.${p.month}.${p.year} ${p.hour}.${p.minute}`;
 }
