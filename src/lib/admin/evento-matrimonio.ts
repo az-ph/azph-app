@@ -35,7 +35,8 @@ export function eventoMatrimonio(m: DatiEvento): EventoCalendario | null {
 
   // Orari: quelli del Matrimonio, altrimenti dalla timeline (prima e ultima riga con l'ora)
   const conOra = m.timeline.filter((r) => r.ora).sort((a, b) => a.giorno - b.giorno || a.ora!.localeCompare(b.ora!));
-  const inizio = hhmm(m.oraInizio) ?? hhmm(conOra[0]?.ora);
+  // 00.00 come ora di inizio arriva dal foglio quando la cella era vuota: si usa la timeline
+  const inizio = (m.oraInizio && hhmm(m.oraInizio) !== "00:00" ? hhmm(m.oraInizio) : null) ?? hhmm(conOra[0]?.ora);
   const ultima = conOra.at(-1);
   const fine = hhmm(m.oraFine) ?? hhmm(ultima?.ora);
   const al = m.dataFine && m.dataFine > m.dataInizio ? m.dataFine : m.dataInizio; // data fine mancante o sbagliata
