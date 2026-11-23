@@ -11,6 +11,7 @@ import { calcolaRate } from "@/lib/sposi/rate";
 import { scriviTimeline } from "@/lib/admin/timeline";
 import { CopiaLink, Modulo } from "../modulo";
 import { AvvisoData } from "../avviso-data";
+import { localeRoma } from "@/lib/google/calendario";
 import { Messaggi } from "../messaggi";
 import { MESSAGGI, messaggioSuggerito, preparaMessaggi } from "@/lib/admin/messaggi";
 import { stileDaColori } from "@/lib/mail/testo";
@@ -112,7 +113,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
               <Campo etichetta="Data fine (più giorni)"><input type="date" name="data_fine" defaultValue={mat.data_fine ?? ""} className={inp} /></Campo>
               <Campo etichetta="Ora inizio"><input type="time" name="ora_inizio" defaultValue={mat.ora_inizio?.slice(0, 5) ?? ""} className={inp} /></Campo>
               <Campo etichetta="Ora fine"><input type="time" name="ora_fine" defaultValue={mat.ora_fine?.slice(0, 5) ?? ""} className={inp} /></Campo>
-              <Campo etichetta="Kick-off meeting"><input type="date" name="kickoff_il" defaultValue={mat.kickoff_il ?? ""} className={inp} /></Campo>
+              <Campo etichetta="Kick-off meeting (crea [KOM] in calendario)"><input type="datetime-local" name="kickoff_il" defaultValue={mat.kickoff_il ? localeRoma(mat.kickoff_il) : ""} className={inp} /></Campo>
               <Campo etichetta="Fonte">
                 <select name="fonte" defaultValue={mat.fonte ?? ""} className={inp}><option value="">—</option>{fonti.map((f) => <option key={f.codice} value={f.codice}>{etichettaFonte(f)}</option>)}</select>
               </Campo>

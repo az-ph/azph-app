@@ -1,2 +1,3 @@
--- Data del kick-off meeting: quando c'è, il Matrimonio esce dalla lista "Kick-off da fissare" della schermata Oggi.
-alter table public.matrimonio add column kickoff_il date;
+-- Kick-off meeting: data e ora (quando c'è, il Matrimonio esce da "Kick-off da fissare" nella schermata Oggi)
+-- e id dell'evento [KOM] creato nel calendario del titolare, per spostarlo o toglierlo.
+alter table public.matrimonio add column kickoff_il timestamptz, add column kickoff_evento text;

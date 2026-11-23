@@ -68,9 +68,9 @@ export default async function Oggi() {
             <li key={m.id} className="flex flex-wrap items-center justify-between gap-3">
               <span><Link href={scheda(m, "dati")} className="font-medium hover:underline underline-offset-4">{m.nomi}</Link>
                 <span className="block text-xs text-tenue">Matrimonio il {data(m.data)} · tra {giorniTra(oggi, m.data!)} giorni</span></span>
-              <Modulo azione={salvaKickoff} etichetta="Segna" compatto className="flex items-center gap-2">
+              <Modulo azione={salvaKickoff} etichetta="Segna e crea [KOM]" compatto className="flex items-center gap-2">
                 <input type="hidden" name="matrimonio_id" value={m.id} />
-                <input type="date" name="kickoff_il" required aria-label={`Data del kick-off di ${m.nomi}`} className="f-inp !w-auto !py-1.5 text-sm" />
+                <input type="datetime-local" name="kickoff_il" required aria-label={`Data del kick-off di ${m.nomi}`} className="f-inp !w-auto !py-1.5 text-sm" />
               </Modulo>
             </li>
           ))}
