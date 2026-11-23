@@ -8,6 +8,7 @@ import { supabaseServizio } from "@/lib/supabase/server";
 import { caricaPagina, matrimonioDaToken, registraEvento } from "@/lib/sposi/dati";
 import { calcolaOfferta, selezione, importiConferma, righeRiepilogo, ErroreSelezione } from "@/lib/listino/motore";
 import { mailConferma } from "@/lib/mail/conferma";
+import { sincronizzaMatrimonio } from "@/lib/admin/sincronizza-calendario";
 import { nomiSposi } from "@/lib/sposi/componi";
 import { euro } from "@/lib/formato";
 
@@ -129,6 +130,13 @@ export async function conferma(token: string, input: unknown): Promise<EsitoConf
     });
   } catch {
     console.error("Mail di conferma: errore imprevisto");
+  }
+
+  // Evento [WDG] nel calendario del titolare (se collegato): non blocca mai la conferma
+  try {
+    await sincronizzaMatrimonio(supabaseServizio(), mid, base);
+  } catch {
+    console.error("Calendario dopo la conferma: errore imprevisto");
   }
 
   // niente revalidatePath: il browser ricarica la pagina da capo (?confermato=1)

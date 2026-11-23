@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { sincronizzaMatrimonio } from "@/lib/admin/sincronizza-calendario";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { componi, stileDaColori } from "@/lib/mail/testo";
 import { inviaMail } from "@/lib/mail/resend";
@@ -24,7 +26,11 @@ async function segnaPreventivoInviato(mid: string, chiave: ChiaveMessaggio) {
   const { data: p } = await supabase.from("preventivo").select("id").eq("matrimonio_id", mid).is("confermato_il", null)
     .order("versione", { ascending: false }).limit(1).maybeSingle();
   if (p) await supabase.from("preventivo").update({ inviato_il: new Date().toISOString() }).eq("id", p.id);
-  await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", mid).eq("stato", "qte_to_contact");
+  const { data: passato } = await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", mid).eq("stato", "qte_to_contact").select("id");
+  if (passato?.length) {
+    const h = await headers();
+    await sincronizzaMatrimonio(supabase, mid, process.env.URL || `https://${h.get("host") ?? ""}`);
+  }
 }
 
 /** Mail agli Sposi dall'indirizzo dell'istanza, risposte al titolare, copia nascosta al titolare. */
