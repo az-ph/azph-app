@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const ICONE = {
+  oggi: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   matrimoni: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />,
   nuovo: <path d="M12 5v14M5 12h14" />,
   importa: <path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" />,
@@ -18,7 +19,8 @@ function Icona({ d }: { d: React.ReactNode }) {
 }
 
 const VOCI = [
-  { href: "/admin", t: "Matrimoni", i: ICONE.matrimoni, attivo: (p: string) => p === "/admin" || /^\/admin\/matrimoni\/[0-9a-f-]{36}/.test(p) },
+  { href: "/admin", t: "Oggi", i: ICONE.oggi, attivo: (p: string) => p === "/admin" },
+  { href: "/admin/matrimoni", t: "Matrimoni", i: ICONE.matrimoni, attivo: (p: string) => p === "/admin/matrimoni" || /^\/admin\/matrimoni\/[0-9a-f-]{36}/.test(p) },
   { href: "/admin/matrimoni/nuovo", t: "Nuovo Matrimonio", i: ICONE.nuovo, attivo: (p: string) => p.startsWith("/admin/matrimoni/nuovo") },
   { href: "/admin/importa", t: "Importa e testi", i: ICONE.importa, attivo: (p: string) => p.startsWith("/admin/importa") },
 ];

@@ -18,7 +18,7 @@ export default async function NuovoMatrimonio() {
   const fonti = unisciFonti(imp?.fonti, (usate ?? []).map((x) => x.fonte));
   return (
     <div className="max-w-4xl">
-      <Testata sopra={<Link href="/admin" className="hover:text-testo">Matrimoni</Link>} titolo="Nuovo Matrimonio"
+      <Testata sopra={<Link href="/admin/matrimoni" className="hover:text-testo">Matrimoni</Link>} titolo="Nuovo Matrimonio"
         sotto="Il codice prende l'anno della richiesta (oggi). Dopo il salvataggio si apre il preventivo." />
       <Modulo azione={creaMatrimonio} etichetta="Crea e vai al preventivo" className="flex flex-col gap-4">
         <Riquadro titolo="Il Matrimonio">
