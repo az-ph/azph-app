@@ -1,5 +1,5 @@
 import { supabaseSessione } from "@/lib/supabase/sessione";
-import { STATI, unisciFonti } from "@/lib/admin/stati";
+import { STATI, etichettaFonte, unisciFonti } from "@/lib/admin/stati";
 import { creaMatrimonio } from "../azioni";
 import { Modulo } from "../modulo";
 import { Campo, Riquadro, Spunta, inp } from "../campi";
@@ -8,12 +8,13 @@ import Link from "next/link";
 
 export default async function NuovoMatrimonio() {
   const supabase = await supabaseSessione();
-  const [{ data: location }, { data: formule }, { data: usate }] = await Promise.all([
+  const [{ data: location }, { data: formule }, { data: usate }, { data: imp }] = await Promise.all([
     supabase.from("location").select("id, nome, comune").order("nome"),
     supabase.from("voce_listino").select("id, codice, voce").eq("categoria", "formula").eq("attiva", true).order("codice"),
     supabase.from("matrimonio").select("fonte").not("fonte", "is", null),
+    supabase.from("impostazioni").select("fonti").maybeSingle(),
   ]);
-  const fonti = unisciFonti((usate ?? []).map((x) => x.fonte));
+  const fonti = unisciFonti(imp?.fonti, (usate ?? []).map((x) => x.fonte));
   return (
     <div className="max-w-4xl">
       <Testata sopra={<Link href="/admin" className="hover:text-testo">Matrimoni</Link>} titolo="Nuovo Matrimonio"
@@ -36,7 +37,7 @@ export default async function NuovoMatrimonio() {
               </select>
             </Campo>
             <Campo etichetta="Fonte">
-              <select name="fonte" className={inp} defaultValue=""><option value="">—</option>{fonti.map((f) => <option key={f}>{f}</option>)}</select>
+              <select name="fonte" className={inp} defaultValue=""><option value="">—</option>{fonti.map((f) => <option key={f.codice} value={f.codice}>{etichettaFonte(f)}</option>)}</select>
             </Campo>
             <Campo etichetta="Stato">
               <select name="stato" className={inp} defaultValue="qte_to_contact">

@@ -18,11 +18,13 @@ describe("utilità admin", () => {
 });
 
 describe("fonti", () => {
-  it("unisce quelle di base con quelle usate, ALTRO in fondo", async () => {
-    const { unisciFonti } = await import("./stati");
-    const f = unisciFonti(["VDM", "MAT", null, " WP "], "ZZZ");
-    expect(f.at(-1)).toBe("ALTRO");
-    expect(f).toEqual(expect.arrayContaining(["VDM", "WP", "ZZZ", "MAT", "PSP"]));
-    expect(new Set(f).size).toBe(f.length);
+  it("unisce quelle delle impostazioni con quelle usate, ALTRO in fondo", async () => {
+    const { unisciFonti, etichettaFonte } = await import("./stati");
+    const base = [{ codice: "MAT", nome: "Matrimonio.com" }, { codice: "VDM", nome: "Villa dei Mulini" }, { nome: "senza codice" }];
+    const f = unisciFonti(base, ["VDM", "ALTRO", null, " WP "], "ZZZ");
+    expect(f.map((x) => x.codice)).toEqual(["MAT", "VDM", "WP", "ZZZ", "ALTRO"]);
+    expect(etichettaFonte(f[0])).toBe("MAT · Matrimonio.com");
+    expect(etichettaFonte(f[2])).toBe("WP");
+    expect(unisciFonti(null, [])).toEqual([]);
   });
 });

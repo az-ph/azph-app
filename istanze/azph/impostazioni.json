@@ -39,5 +39,63 @@
     "verde_scuro": "#62744f",
     "tinta": "#e2e9da",
     "antracite": "#383838"
-  }
+  },
+  "fonti": [
+    {
+      "codice": "AMA",
+      "nome": "Atelier Madà"
+    },
+    {
+      "codice": "CCO",
+      "nome": "Corte Costavecchia"
+    },
+    {
+      "codice": "FBO",
+      "nome": "Facebook"
+    },
+    {
+      "codice": "GPI",
+      "nome": "Giuliana Pinzi"
+    },
+    {
+      "codice": "IGR",
+      "nome": "Instagram"
+    },
+    {
+      "codice": "LBF",
+      "nome": "LB Fiori"
+    },
+    {
+      "codice": "MAM",
+      "nome": "Maela Marastoni"
+    },
+    {
+      "codice": "MAT",
+      "nome": "Matrimonio.com"
+    },
+    {
+      "codice": "PSP",
+      "nome": "Passaparola"
+    },
+    {
+      "codice": "SPO",
+      "nome": "Sposi Domani"
+    },
+    {
+      "codice": "VCA",
+      "nome": "Villa Cavriani"
+    },
+    {
+      "codice": "VDB",
+      "nome": "Villa di Bagno"
+    },
+    {
+      "codice": "VDM",
+      "nome": "Villa dei Mulini"
+    },
+    {
+      "codice": "WEB",
+      "nome": "Internet"
+    }
+  ]
 }
