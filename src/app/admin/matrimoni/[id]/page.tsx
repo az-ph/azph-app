@@ -462,6 +462,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
   const vm = videomaker.find((v) => v.id === mat.videomaker_id) ?? videomaker.find((v) => v.codice && codiciVideo.includes(v.codice)) ?? videomaker[0];
   const valori = {
     NOMI: nomiBrevi(sposi), DATA: data(mat.data_inizio), DATA_ESTESA: dataEstesa(mat.data_inizio),
+    DATA_LUNGA: dataEstesa(mat.data_inizio).replace(/^\S+ /, ""),
     LINK: urlSposi, LINK_TIMELINE: `${urlSposi}#azp-timeline`, VERSIONE: prev ? `v${String(prev.versione).padStart(2, "0")}` : "",
     URL_RECENSIONI: imp.data?.url_recensioni ?? "", VIDEOMAKER: vm?.nome ?? "", VIDEOMAKER_TELEFONO: vm?.telefono ?? "",
   };

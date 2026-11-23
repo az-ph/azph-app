@@ -19,9 +19,9 @@
   },
   {
     "chiave": "preventivo",
-    "oggetto": "Preventivo fotografico - Matrimonio del {DATA_ESTESA}",
-    "corpo_mail": "Ciao {NOMI},\ninnanzitutto vi ringrazio per l'opportunità e l'interesse. Come richiesto, vi invio il preventivo per il Matrimonio del {DATA_ESTESA}:\n[!Guarda il preventivo]({LINK})\n\nNella pagina troverete tutte le informazioni su come lavoro, la timeline della giornata e il dettaglio dei costi. Tutti i prezzi sono \"finiti\": includono già il 4% di rivalsa INPS (opero in regime forfetario, senza applicazione dell'IVA). Per farvi un'idea del mio stile, nella pagina trovate anche alcuni real wedding, con il materiale consegnato ad alcuni degli ultimi Sposi che ho seguito.\n\nIl preventivo è modulare. La voce principale è il Servizio Fotografico (Photo), comprensivo di post-produzione e consegna di tutte le immagini alla massima risoluzione. {OMAGGI}Potete aggiungere o togliere gli opzionali, tra cui l'Album, e il totale si aggiorna subito. Quando siete pronti potete confermare direttamente dalla pagina, senza alcuna caparra.\n{VIDEO}\nSe volete leggere le recensioni di altri Sposi: []({URL_RECENSIONI})\nResto a disposizione per un incontro conoscitivo, senza alcun impegno da parte vostra.\n\nA presto\n{FIRMA}",
-    "corpo_whatsapp": "Ciao {NOME}, ecco il preventivo - inviato anche via mail - per il Matrimonio del {DATA_ESTESA} >> {LINK}\nNella pagina troverete tutte le informazioni su come lavoro, la timeline della giornata e il dettaglio dei costi. Tutti i prezzi sono \"finiti\": includono già il 4% di rivalsa INPS (opero in regime forfetario, senza applicazione dell'IVA). Per farvi un'idea del mio stile, nella pagina trovate anche alcuni real wedding, con il materiale consegnato ad alcuni degli ultimi Sposi che ho seguito.\n\nIl preventivo è modulare. La voce principale è il Servizio Fotografico (Photo), comprensivo di post-produzione e consegna di tutte le immagini alla massima risoluzione. {OMAGGI}Potete aggiungere o togliere gli opzionali, tra cui l'Album, e il totale si aggiorna subito. Quando siete pronti potete confermare direttamente dalla pagina, senza alcuna caparra.\n{VIDEO}\nSe volete leggere le recensioni di altri Sposi: {URL_RECENSIONI}"
+    "oggetto": "Preventivo fotografico - Matrimonio del {DATA_LUNGA}",
+    "corpo_mail": "Ciao {NOMI},\ninnanzitutto vi ringrazio per l'opportunità e l'interesse. Come richiesto, vi invio il preventivo per il Matrimonio del {DATA_LUNGA}:\n[!Guarda il preventivo]({LINK})\n\nNella pagina troverete tutte le informazioni su come lavoro, la timeline della giornata e il dettaglio dei costi. Tutti i prezzi sono \"finiti\": includono già il 4% di rivalsa INPS (opero in regime forfetario, senza applicazione dell'IVA). Per farvi un'idea del mio stile, nella pagina trovate anche alcuni real wedding, con il materiale consegnato ad alcuni degli ultimi Sposi che ho seguito.\n\nIl preventivo è modulare. La voce principale è il Servizio Fotografico (Photo), comprensivo di post-produzione e consegna di tutte le immagini alla massima risoluzione. {OMAGGI}Potete aggiungere o togliere gli opzionali, tra cui l'Album, e il totale si aggiorna subito. Quando siete pronti potete confermare direttamente dalla pagina, senza alcuna caparra.\n{VIDEO}\nSe volete leggere le recensioni di altri Sposi: []({URL_RECENSIONI})\nResto a disposizione per un incontro conoscitivo, senza alcun impegno da parte vostra.\n\nA presto\n{FIRMA}",
+    "corpo_whatsapp": "Ciao {NOME}, ecco il preventivo - inviato anche via mail - per il Matrimonio del {DATA_LUNGA} >> {LINK}\nNella pagina troverete tutte le informazioni su come lavoro, la timeline della giornata e il dettaglio dei costi. Tutti i prezzi sono \"finiti\": includono già il 4% di rivalsa INPS (opero in regime forfetario, senza applicazione dell'IVA). Per farvi un'idea del mio stile, nella pagina trovate anche alcuni real wedding, con il materiale consegnato ad alcuni degli ultimi Sposi che ho seguito.\n\nIl preventivo è modulare. La voce principale è il Servizio Fotografico (Photo), comprensivo di post-produzione e consegna di tutte le immagini alla massima risoluzione. {OMAGGI}Potete aggiungere o togliere gli opzionali, tra cui l'Album, e il totale si aggiorna subito. Quando siete pronti potete confermare direttamente dalla pagina, senza alcuna caparra.\n{VIDEO}\nSe volete leggere le recensioni di altri Sposi: {URL_RECENSIONI}"
   },
   {
     "chiave": "preventivo_video",
@@ -37,26 +37,26 @@
   },
   {
     "chiave": "aggiornato",
-    "oggetto": "Preventivo aggiornato - Matrimonio del {DATA_ESTESA}",
-    "corpo_mail": "Ciao {NOMI},\ncome d'accordo ho aggiornato il preventivo per il vostro Matrimonio del {DATA_ESTESA}. Il link è sempre lo stesso e trovate già la versione nuova ({VERSIONE}):\n[!Guarda il preventivo aggiornato]({LINK})\n\nCome sempre potete aggiungere o togliere gli opzionali e vedere subito il totale. Quando siete pronti potete confermare direttamente dalla pagina, senza alcuna caparra.\n\nPer qualsiasi dubbio scrivetemi pure.\n\nA presto\n{FIRMA}",
+    "oggetto": "Preventivo aggiornato - Matrimonio del {DATA_LUNGA}",
+    "corpo_mail": "Ciao {NOMI},\ncome d'accordo ho aggiornato il preventivo per il vostro Matrimonio del {DATA_LUNGA}. Il link è sempre lo stesso e trovate già la versione nuova ({VERSIONE}):\n[!Guarda il preventivo aggiornato]({LINK})\n\nCome sempre potete aggiungere o togliere gli opzionali e vedere subito il totale. Quando siete pronti potete confermare direttamente dalla pagina, senza alcuna caparra.\n\nPer qualsiasi dubbio scrivetemi pure.\n\nA presto\n{FIRMA}",
     "corpo_whatsapp": null
   },
   {
     "chiave": "sposi",
-    "oggetto": "La vostra pagina per il Matrimonio del {DATA_ESTESA}",
+    "oggetto": "La vostra pagina per il Matrimonio del {DATA_LUNGA}",
     "corpo_mail": "Ciao {NOMI},\nda questo link trovate sempre aggiornati la timeline, il riepilogo dei servizi e i pagamenti del vostro Matrimonio:\n[!Vai alla vostra area Sposi]({LINK})\n\nVi conviene salvarlo: lo aggiorno io man mano che definiamo i dettagli.\n\nA presto\n{FIRMA}",
     "corpo_whatsapp": null
   },
   {
     "chiave": "timeline",
-    "oggetto": "Timeline aggiornata - Matrimonio del {DATA_ESTESA}",
+    "oggetto": "Timeline aggiornata - Matrimonio del {DATA_LUNGA}",
     "corpo_mail": "Ciao {NOMI},\nho aggiornato la timeline della giornata con quanto ci siamo detti:\n[!Guarda la timeline]({LINK_TIMELINE})\n\nDatele un'occhiata e ditemi se c'è qualcosa da sistemare.\n\nA presto\n{FIRMA}",
     "corpo_whatsapp": null
   },
   {
     "chiave": "duo",
-    "oggetto": "Foto e video per il vostro Matrimonio del {DATA_ESTESA}",
-    "corpo_mail": "Ciao {NOMI},\ngrazie per l'interesse! Come d'accordo vi inviamo la proposta foto e video per il vostro Matrimonio del {DATA_ESTESA}:\n[!Guarda la proposta]({LINK})\n\nNella pagina trovate chi siamo, come lavoriamo, la timeline della giornata e il pacchetto foto + video, con gli opzionali che potete aggiungere. I prezzi sono \"finiti\" e quando siete pronti potete confermare direttamente dalla pagina.\n\nRestiamo a disposizione per un incontro conoscitivo, senza alcun impegno da parte vostra.\n\nA presto\n{FIRMA}",
+    "oggetto": "Foto e video per il vostro Matrimonio del {DATA_LUNGA}",
+    "corpo_mail": "Ciao {NOMI},\ngrazie per l'interesse! Come d'accordo vi inviamo la proposta foto e video per il vostro Matrimonio del {DATA_LUNGA}:\n[!Guarda la proposta]({LINK})\n\nNella pagina trovate chi siamo, come lavoriamo, la timeline della giornata e il pacchetto foto + video, con gli opzionali che potete aggiungere. I prezzi sono \"finiti\" e quando siete pronti potete confermare direttamente dalla pagina.\n\nRestiamo a disposizione per un incontro conoscitivo, senza alcun impegno da parte vostra.\n\nA presto\n{FIRMA}",
     "corpo_whatsapp": null
   }
 ]
