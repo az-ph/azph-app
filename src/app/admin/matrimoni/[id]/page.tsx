@@ -10,6 +10,7 @@ import { eliminaIncasso, registraIncasso, rigeneraLink, salvaDati, salvaPreventi
 import { calcolaRate } from "@/lib/sposi/rate";
 import { scriviTimeline } from "@/lib/admin/timeline";
 import { CopiaLink, Modulo } from "../modulo";
+import { AvvisoData } from "../avviso-data";
 import { Campo, Riquadro, Spunta, inp } from "../campi";
 import { Kpi, PillStato, Testata, giorniDa } from "../../ui";
 
@@ -103,7 +104,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
               <Campo etichetta="Stato">
                 <select name="stato" defaultValue={mat.stato} className={inp}>{STATI.map((x) => <option key={x.valore} value={x.valore}>{x.etichetta}</option>)}</select>
               </Campo>
-              <Campo etichetta="Data"><input type="date" name="data_inizio" defaultValue={mat.data_inizio ?? ""} className={inp} /></Campo>
+              <div className="flex flex-col gap-2"><Campo etichetta="Data"><input type="date" name="data_inizio" defaultValue={mat.data_inizio ?? ""} className={inp} /></Campo>{mat.stato.startsWith("qte") && <AvvisoData escludi={mat.id} iniziale={mat.data_inizio ?? ""} />}</div>
               <Campo etichetta="Data fine (più giorni)"><input type="date" name="data_fine" defaultValue={mat.data_fine ?? ""} className={inp} /></Campo>
               <Campo etichetta="Ora inizio"><input type="time" name="ora_inizio" defaultValue={mat.ora_inizio?.slice(0, 5) ?? ""} className={inp} /></Campo>
               <Campo etichetta="Ora fine"><input type="time" name="ora_fine" defaultValue={mat.ora_fine?.slice(0, 5) ?? ""} className={inp} /></Campo>
