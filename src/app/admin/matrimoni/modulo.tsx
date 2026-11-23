@@ -3,36 +3,40 @@
 import { useActionState } from "react";
 import type { Esito } from "./azioni";
 
-/** Modulo con salvataggio e messaggio di esito sotto il pulsante. */
-export function Modulo({ azione, etichetta = "Salva", children, className }: {
-  azione: (s: Esito, fd: FormData) => Promise<Esito>; etichetta?: string; children: React.ReactNode; className?: string;
+/** Modulo con salvataggio e messaggio di esito accanto al pulsante. */
+export function Modulo({ azione, etichetta = "Salva", children, className, compatto }: {
+  azione: (s: Esito, fd: FormData) => Promise<Esito>; etichetta?: string; children: React.ReactNode; className?: string; compatto?: boolean;
 }) {
   const [esito, invia, inCorso] = useActionState(azione, null);
   return (
     <form action={invia} className={className}>
       {children}
-      <div className="mt-5 flex items-center gap-4">
-        <button className="bg-salvia-scuro text-white px-5 py-2 rounded disabled:opacity-60" disabled={inCorso}>
+      <div className={compatto ? "flex items-center gap-2" : "mt-5 flex flex-wrap items-center gap-4"}>
+        <button className={`f-btn f-btn-pieno ${compatto ? "!py-1.5 !px-3" : ""}`} disabled={inCorso}>
           {inCorso ? "Salvataggio…" : etichetta}
         </button>
-        {esito?.ok && <span className="text-salvia-scuro text-sm" role="status">Salvato ✓</span>}
-        {esito?.errore && <span className="text-red-700 text-sm" role="alert">{esito.errore}</span>}
+        {esito?.ok && <span className="text-ok text-sm font-medium" role="status">Salvato ✓</span>}
+        {esito?.errore && <span className="text-errore text-sm" role="alert">{esito.errore}</span>}
       </div>
     </form>
   );
 }
 
-export function CopiaLink({ url }: { url: string }) {
+export function CopiaLink({ url, className = "f-btn" }: { url: string; className?: string }) {
   return (
-    <button type="button" className="text-sm underline text-salvia-scuro"
-      onClick={() => navigator.clipboard.writeText(url).then(() => alertBreve("Link copiato"))}>Copia link Sposi</button>
+    <button type="button" className={className}
+      onClick={() => navigator.clipboard.writeText(url).then(() => avvisoBreve("Link copiato"))}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a1 1 0 0 1 1-1h10" /></svg>
+      Copia link
+    </button>
   );
 }
 
-function alertBreve(msg: string) {
+function avvisoBreve(msg: string) {
   const el = document.createElement("div");
   el.textContent = msg;
-  el.className = "fixed bottom-4 left-1/2 -translate-x-1/2 bg-antracite text-white text-sm px-4 py-2 rounded shadow";
-  document.body.appendChild(el);
+  el.setAttribute("role", "status");
+  el.style.cssText = "position:fixed;bottom:1.25rem;left:50%;transform:translateX(-50%);background:var(--f-testo);color:var(--f-fondo);font-size:.875rem;padding:.55rem 1rem;border-radius:10px;box-shadow:0 8px 24px rgb(0 0 0/.18);z-index:50";
+  document.querySelector(".fede")?.appendChild(el);
   setTimeout(() => el.remove(), 1800);
 }

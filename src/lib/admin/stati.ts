@@ -12,7 +12,25 @@ export const STATI: { valore: string; etichetta: string }[] = [
   { valore: "clo_no_answer", etichetta: "Nessuna risposta" },
 ];
 export const ETICHETTA_STATO: Record<string, string> = Object.fromEntries(STATI.map((s) => [s.valore, s.etichetta]));
-export const FONTI = ["MAT", "IGR", "FBO", "PSP", "WEB", "VDB", "ALTRO"];
+export type Fonte = { codice: string; nome: string };
+
+/** Fonti da proporre: quelle delle impostazioni, più i codici già usati nei Matrimoni (anche importati dal foglio) e quello attuale. */
+export function unisciFonti(base: unknown, usate: (string | null)[], attuale?: string | null): Fonte[] {
+  const elenco = new Map<string, string>();
+  for (const f of Array.isArray(base) ? base : []) {
+    const c = typeof f?.codice === "string" ? f.codice.trim() : "";
+    if (c) elenco.set(c, typeof f.nome === "string" && f.nome.trim() ? f.nome.trim() : c);
+  }
+  for (const u of [...usate, attuale]) {
+    const c = u?.trim();
+    if (c && !elenco.has(c)) elenco.set(c, c);
+  }
+  return [...elenco].map(([codice, nome]) => ({ codice, nome }))
+    .sort((a, b) => (a.codice === "ALTRO" ? 1 : b.codice === "ALTRO" ? -1 : a.codice.localeCompare(b.codice)));
+}
+
+/** Testo dell'opzione: "MAT · Matrimonio.com". */
+export const etichettaFonte = (f: Fonte) => (f.nome === f.codice ? f.codice : `${f.codice} · ${f.nome}`);
 
 /** Token dei link Sposi: 22 caratteri base62 da crypto. */
 export function nuovoToken(lunghezza = 22): string {

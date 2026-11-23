@@ -16,3 +16,15 @@ describe("utilità admin", () => {
     expect(leggiPrezziSpeciali(prezziInTesto(p))).toEqual(p);
   });
 });
+
+describe("fonti", () => {
+  it("unisce quelle delle impostazioni con quelle usate, ALTRO in fondo", async () => {
+    const { unisciFonti, etichettaFonte } = await import("./stati");
+    const base = [{ codice: "MAT", nome: "Matrimonio.com" }, { codice: "VDM", nome: "Villa dei Mulini" }, { nome: "senza codice" }];
+    const f = unisciFonti(base, ["VDM", "ALTRO", null, " WP "], "ZZZ");
+    expect(f.map((x) => x.codice)).toEqual(["MAT", "VDM", "WP", "ZZZ", "ALTRO"]);
+    expect(etichettaFonte(f[0])).toBe("MAT · Matrimonio.com");
+    expect(etichettaFonte(f[2])).toBe("WP");
+    expect(unisciFonti(null, [])).toEqual([]);
+  });
+});
