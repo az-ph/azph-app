@@ -63,7 +63,7 @@ export function componi(t: string, blocchi: Record<string, Blocco> = {}, stile: 
     chiudi();
     return html;
   });
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:${COLORE.testo};max-width:560px">${paragrafi.join("")}</div>` +
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:${COLORE.testo};">${paragrafi.join("")}</div>` +
     (firma.html ? `<div style="margin-top:4px">${firma.html}</div>` : "");
   return { html, testo: testo.trim() + "\n" };
 }
@@ -95,7 +95,7 @@ function pulsante(etichetta: string, url: string, c: Stile): string {
 export function tabella(righe: [string, string][], totale?: [string, string], COLORE: Stile = NEUTRO): Blocco {
   const td = `padding:7px 0;border-bottom:1px solid ${COLORE.linea};vertical-align:top;`;
   const tot = `padding:9px 0;border-top:2px solid ${COLORE.testo};font-weight:bold;`;
-  const html = `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:520px;margin:6px 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:14px">` +
+  const html = `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;margin:6px 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:14px">` +
     righe.map(([a, b]) => `<tr><td style="${td}padding-right:16px">${escH(a)}</td><td style="${td}text-align:right;white-space:nowrap">${escH(b)}</td></tr>`).join("") +
     (totale ? `<tr><td style="${tot}">${escH(totale[0])}</td><td style="${tot}text-align:right;white-space:nowrap">${escH(totale[1])}</td></tr>` : "") +
     `</table>`;
