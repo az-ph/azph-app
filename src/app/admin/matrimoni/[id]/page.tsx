@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { data, dataEstesa, euro, euroBreve } from "@/lib/formato";
-import { STATI, etichettaFonte, nomiBrevi, prezziInTesto, unisciFonti } from "@/lib/admin/stati";
+import { STATI, etichettaFonte, nomiBrevi, nomiCompleti, prezziInTesto, unisciFonti } from "@/lib/admin/stati";
 import { calcolaOfferta, type Categoria } from "@/lib/listino/motore";
 import { listinoDaRighe, preventivoDaRiga } from "@/lib/sposi/dati";
 import { eliminaIncasso, registraIncasso, rigeneraLink, salvaDati, salvaImporto, salvaPreventivo, salvaTimeline, segnaInviato } from "../azioni";
@@ -37,7 +37,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
   const supabase = await supabaseSessione();
 
   const [m, sposi, prev, link, listino, location, videomaker, timeline, pagamenti, importi, eventi, fontiUsate, imp] = await Promise.all([
-    supabase.from("matrimonio").select("id, codice_id, stato, fonte, kickoff_il, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, pagina_congiunta, videomaker_id").eq("id", id).maybeSingle(),
+    supabase.from("matrimonio").select("id, codice_id, stato, fonte, kickoff_il, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, pagina_congiunta, videomaker_id, esempio").eq("id", id).maybeSingle(),
     supabase.from("sposo").select("ordine, nome, telefono, email, codice_fiscale, indirizzo, indirizzo_preparativi, consenso_promo").eq("matrimonio_id", id).order("ordine"),
     supabase.from("preventivo").select("id, versione, opzioni, prezzi_speciali, preselezione, scelte, totale, inviato_il, confermato_il, righe_confermate, note_cliente").eq("matrimonio_id", id).order("versione", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("link_sposi").select("token").eq("matrimonio_id", id).is("revocato_il", null).order("creato_il", { ascending: false }).limit(1).maybeSingle(),
@@ -76,7 +76,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
     <div>
       <Testata
         sopra={<><Link href="/admin/matrimoni" className="hover:text-testo">Matrimoni</Link> <span aria-hidden="true">/</span> <span className="tabular-nums">{mat.codice_id}</span></>}
-        titolo={nomiBrevi(s) || "Senza nomi"}
+        titolo={nomiCompleti(s) || "Senza nomi"}
         extra={<PillStato stato={mat.stato} />}
         sotto={[mat.data_inizio ? `${dataEstesa(mat.data_inizio)}` : "Data da definire", luogo ? `${luogo.nome}${luogo.comune ? `, ${luogo.comune}` : ""}` : null, mat.fonte ? `fonte ${etichettaFonte(fonti.find((f) => f.codice === mat.fonte) ?? { codice: mat.fonte, nome: mat.fonte })}` : null].filter(Boolean).join(" · ")}
         azioni={<>
@@ -133,6 +133,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
               <div className="flex flex-col gap-2.5 justify-end pb-1">
                 <Spunta nome="preparativi" etichetta="Preparativi" attiva={mat.preparativi} />
                 <Spunta nome="pagina_congiunta" etichetta="Pagina congiunta con il video" attiva={mat.pagina_congiunta} />
+                <Spunta nome="esempio" etichetta="Pagina di esempio (non è un Matrimonio vero)" attiva={mat.esempio} />
               </div>
             </div>
           </Riquadro>

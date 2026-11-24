@@ -57,3 +57,8 @@ export function prezziInTesto(p: Record<string, number>): string {
 
 /** "Anna Rossi" → "Anna". */
 export const primoNomeDi = (nome: string | null | undefined) => (nome ?? "").trim().split(/\s+/)[0] ?? "";
+
+/** "Anna Rossi" + "Bruno Verdi" → "Anna Rossi e Bruno Verdi" (nome e cognome, per l'area admin). */
+export function nomiCompleti(sposi: { ordine: number; nome: string | null }[]): string {
+  return [...sposi].sort((a, b) => a.ordine - b.ordine).map((s) => (s.nome ?? "").trim().replace(/\s+/g, " ")).filter(Boolean).join(" e ");
+}

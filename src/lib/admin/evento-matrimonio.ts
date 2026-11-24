@@ -6,6 +6,7 @@ export type DatiEvento = {
   dataInizio: string | null; dataFine: string | null; oraInizio: string | null; oraFine: string | null;
   luogo: string; telefoni: { nome: string; telefono: string }[]; scheda: string;
   timeline: { giorno: number; ora: string | null }[];
+  esempio?: boolean;
 };
 
 /** Etichetta del calendario per lo stato, o null se l'evento non deve esserci (come il vecchio foglio). */
@@ -25,7 +26,7 @@ function piuGiorni(iso: string, n: number): string {
 
 export function eventoMatrimonio(m: DatiEvento): EventoCalendario | null {
   const tag = etichetta(m.stato);
-  if (!tag || !m.dataInizio) return null;
+  if (!tag || !m.dataInizio || m.esempio) return null;
   const titolo = `[${tag}]${m.fonte ? `[${m.fonte}]` : ""} ${m.nomi}`;
   const descrizione = [
     ...m.telefoni.filter((t) => t.telefono).map((t) => `${t.nome}: ${t.telefono}`),
