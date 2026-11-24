@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { sincronizzaMatrimonio } from "@/lib/admin/sincronizza-calendario";
 import { istanteDaRoma } from "@/lib/admin/ora-roma";
+import { STATI } from "@/lib/admin/stati";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { componi, stileDaColori } from "@/lib/mail/testo";
 import { inviaMail } from "@/lib/mail/resend";
@@ -110,7 +111,10 @@ export async function registraContatto(_: Esito, fd: FormData): Promise<Esito> {
   if (error) return { errore: error.message };
   // Riscontro negativo: il Matrimonio si chiude come Perso (e l'eventuale evento in calendario si toglie)
   if (d.esito === "negativo") {
-    await supabase.from("matrimonio").update({ stato: "clo_lost" }).eq("id", d.matrimonio_id).like("stato", "qte_%");
+    // stato è un enum: niente "like", si elencano gli stati di preventivo
+    const { error: e2 } = await supabase.from("matrimonio").update({ stato: "clo_lost" }).eq("id", d.matrimonio_id)
+      .in("stato", STATI.map((x) => x.valore).filter((v) => v.startsWith("qte_")));
+    if (e2) return { errore: `Contatto salvato, ma lo stato non è cambiato: ${e2.message}` };
     const h = await headers();
     await sincronizzaMatrimonio(supabase, d.matrimonio_id, process.env.URL || `https://${h.get("host") ?? ""}`);
     revalidatePath(`/admin/matrimoni/${d.matrimonio_id}`);
