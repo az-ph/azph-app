@@ -25,3 +25,17 @@ describe("rate dei pagamenti", () => {
     expect(calcolaRate(perVoce, [{ tipo: "saldo", importo: 80000, pagato_il: null }])[1].incassato).toBe(0);
   });
 });
+
+describe("rate pagate in più", () => {
+  it("il saldo pagato in più copre l'acconto che manca", () => {
+    const r = calcolaRate({ servizio: 100000, memory_box: 5000, album: 50000 }, [
+      { tipo: "altro", importo: 50000, pagato_il: "2026-11-21" },
+      { tipo: "saldo", importo: 55000, pagato_il: "2026-11-24" },
+    ], "2026-07-25");
+    expect(r.map((x) => [x.tipo, x.dovuto, x.incassato])).toEqual([["acconto", 52500, 52500], ["saldo", 52500, 52500], ["album", 50000, 0]]);
+  });
+  it("l'eccedenza oltre il totale resta visibile sull'ultima rata", () => {
+    const r = calcolaRate({ servizio: 100000 }, [{ tipo: "saldo", importo: 110000, pagato_il: "2026-11-24" }], null);
+    expect(r.map((x) => [x.tipo, x.incassato])).toEqual([["acconto", 50000], ["saldo", 60000]]);
+  });
+});
