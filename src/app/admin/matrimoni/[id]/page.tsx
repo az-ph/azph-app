@@ -6,7 +6,7 @@ import { data, dataEstesa, euro, euroBreve } from "@/lib/formato";
 import { STATI, etichettaFonte, nomiBrevi, prezziInTesto, unisciFonti } from "@/lib/admin/stati";
 import { calcolaOfferta, type Categoria } from "@/lib/listino/motore";
 import { listinoDaRighe, preventivoDaRiga } from "@/lib/sposi/dati";
-import { eliminaIncasso, registraIncasso, rigeneraLink, salvaDati, salvaPreventivo, salvaTimeline, segnaInviato } from "../azioni";
+import { eliminaIncasso, registraIncasso, rigeneraLink, salvaDati, salvaImporto, salvaPreventivo, salvaTimeline, segnaInviato } from "../azioni";
 import { calcolaRate } from "@/lib/sposi/rate";
 import { scriviTimeline } from "@/lib/admin/timeline";
 import { CopiaLink, Modulo } from "../modulo";
@@ -362,6 +362,11 @@ function SchedaTimeline({ mid, righe }: { mid: string; righe: { ora: string | nu
   );
 }
 
+const NOME_VOCE: Record<string, string> = {
+  servizio: "Servizio fotografico", prewedding: "Prematrimoniale", photo_booth: "Photo booth", secondo_operatore: "Secondo operatore",
+  memory_box: "Memory box", album: "Album", album_genitori: "Album genitori", extra: "Extra",
+};
+
 const NOME_RATA: Record<string, string> = { acconto: "Acconto", saldo: "Saldo", album: "Album", album_genitori: "Album genitori", altro: "Incasso dal foglio / altro" };
 
 function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
@@ -371,7 +376,30 @@ function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
   const perVoce = Object.fromEntries(importi.map((x) => [x.voce, x.importo]));
   const rate = calcolaRate(perVoce, incassi, dataMatrimonio);
   const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
-  if (!importi.length) return <Riquadro><p className="text-sm text-tenue">Nessun importo: le rate compaiono dopo la conferma del preventivo.</p></Riquadro>;
+  const voci = (
+    <Riquadro titolo="Voci e importi" azione={<span className="text-xs text-tenue">le rate si ricalcolano da qui</span>}>
+      {importi.length > 0 && (
+        <ul className="f-righe text-sm mb-4">{importi.map((x) => (
+          <li key={x.voce} className="items-center">
+            <span>{NOME_VOCE[x.voce] ?? x.voce}</span>
+            <Modulo azione={salvaImporto} etichetta="Salva" compatto className="flex items-center gap-2">
+              <input type="hidden" name="matrimonio_id" value={mid} />
+              <input type="hidden" name="voce" value={x.voce} />
+              <input name="importo" defaultValue={(x.importo / 100).toFixed(2).replace(".", ",")} aria-label={`Importo ${NOME_VOCE[x.voce] ?? x.voce}`} className={`${inp} !w-28 !py-1.5 text-sm text-right`} />
+            </Modulo>
+          </li>
+        ))}</ul>
+      )}
+      <Modulo azione={salvaImporto} etichetta="Aggiungi" compatto className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="matrimonio_id" value={mid} />
+        <select name="voce" aria-label="Voce" className={`${inp} !w-auto !py-1.5 text-sm`} defaultValue="album">
+          {Object.entries(NOME_VOCE).filter(([k]) => !importi.some((x) => x.voce === k)).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+        </select>
+        <input name="importo" placeholder="500" inputMode="decimal" aria-label="Importo" className={`${inp} !w-28 !py-1.5 text-sm text-right`} />
+      </Modulo>
+    </Riquadro>
+  );
+  if (!importi.length) return <div className="flex flex-col gap-4"><Riquadro><p className="text-sm text-tenue">Nessun importo: le rate compaiono dopo la conferma del preventivo, oppure aggiungi le voci qui sotto.</p></Riquadro>{voci}</div>;
   const registrati = incassi.filter((x) => x.pagato_il);
   return (
     <div className="flex flex-col gap-4">
@@ -431,6 +459,7 @@ function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
           </Modulo>
         </Riquadro>
       </div>
+      {voci}
     </div>
   );
 }

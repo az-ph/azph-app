@@ -249,3 +249,29 @@ export async function sincronizzaCalendario(dopo: string | null) {
   if (!d.success) return null;
   return sincronizzaTutti(await supabaseSessione(), await baseUrl(), d.data);
 }
+
+// ---------- Voci e importi (album aggiunto dopo, prezzi cambiati) ----------
+
+const VOCI_IMPORTO = ["servizio", "prewedding", "photo_booth", "secondo_operatore", "memory_box", "album", "album_genitori", "extra"] as const;
+
+function centesimiDa(testo: string): number | null {
+  const t = testo.replace(/[€\s]/g, "");
+  const grezzo = /^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(t) ? t.replace(/\./g, "") : t;
+  const n = Number(grezzo.replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null;
+}
+
+export async function salvaImporto(_: Esito, fd: FormData): Promise<Esito> {
+  const mid = z.string().uuid().safeParse(fd.get("matrimonio_id"));
+  const voce = z.enum(VOCI_IMPORTO).safeParse(fd.get("voce"));
+  const importo = centesimiDa(String(fd.get("importo") ?? ""));
+  if (!mid.success || !voce.success || importo == null) return { errore: "Servono voce e importo." };
+  const supabase = await supabaseSessione();
+  const { error } = importo === 0 && fd.get("togli") === "1"
+    ? await supabase.from("importo").delete().eq("matrimonio_id", mid.data).eq("voce", voce.data)
+    : await supabase.from("importo").upsert({ matrimonio_id: mid.data, voce: voce.data, importo }, { onConflict: "matrimonio_id,voce" });
+  if (error) return { errore: error.message };
+  revalidatePath(`/admin/matrimoni/${mid.data}`);
+  revalidatePath("/admin");
+  return { ok: true };
+}
