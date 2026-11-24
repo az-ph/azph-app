@@ -33,7 +33,7 @@ export interface RigheGrezze {
 export interface Blocco {
   chiave: string; sopratitolo?: string; titolo?: string; corpo?: string; banda?: boolean; gallerie?: boolean;
   passi?: [string, string][]; inclusi?: string[]; voce_prezzo?: string; dati?: [string, string][]; lista?: string[];
-  link?: [string, string][]; nota?: string;
+  link?: [string, string][]; nota?: string; citazioni?: [string, string][];
 }
 
 export interface Galleria { titolo: string; url: string }
@@ -72,7 +72,7 @@ export function componiPagina(r: RigheGrezze) {
 
   const blocchi: Blocco[] = r.blocchi
     .filter((b) => b.quando === "sempre"
-      || (modo === "preventivo" && (congiunta ? b.quando === "preventivo_duo" || (b.quando === "preventivo" && !["mi-presento", "reportage", "come-lavoro", "servizio", "video"].includes(b.chiave)) : b.quando === "preventivo"))
+      || (modo === "preventivo" && (congiunta ? b.quando === "preventivo_duo" || (b.quando === "preventivo" && !["mi-presento", "reportage", "come-lavoro", "servizio", "video", "recensioni"].includes(b.chiave)) : b.quando === "preventivo"))
       || ((modo === "sposi" || modo === "chiuso") && b.quando === "sposi"))
     .map((b) => ({ chiave: b.chiave, ...(b.dati as object) }));
 
@@ -112,6 +112,7 @@ export function componiPagina(r: RigheGrezze) {
     blocchi,
     marchio,
     zone: r.impostazioni?.zone ?? [],
+    urlRecensioni: modo === "preventivo" && /^https:\/\//.test(r.impostazioni?.url_recensioni ?? "") ? r.impostazioni!.url_recensioni! : null,
     contratto: r.contratto,
   };
 }

@@ -15,7 +15,8 @@ export function Preventivo(props: {
   servizioSenzaVideo: number | null;
   preselezione: string[];
   sposi: (SposoDati & { ordine: number; consenso_promo: boolean })[];
-  blocchi: { opzionali?: Blocco; album?: Blocco; video?: Blocco };
+  blocchi: { opzionali?: Blocco; album?: Blocco; video?: Blocco; recensioni?: Blocco };
+  urlRecensioni?: string | null;
   contratto: string;
   videomaker: string | null;
 }) {
@@ -182,6 +183,24 @@ export function Preventivo(props: {
                 <p style={{ marginTop: "2rem" }}>Con il video potete aggiungere:</p>
                 <div className="opzioni due">{extraVideo.map((v) => card(v, !video))}</div>
               </>
+            )}
+          </div>
+        </section>
+      )}
+
+      {(props.blocchi.recensioni?.citazioni?.length ?? 0) > 0 && (
+        <section className="recensioni" id="azp-recensioni">
+          <div className="wrap">
+            <p className="sez">{props.blocchi.recensioni!.sopratitolo ?? "Dicono di me"}</p>
+            {props.blocchi.recensioni!.titolo && <h2>{props.blocchi.recensioni!.titolo}</h2>}
+            <div className="citazioni">
+              {props.blocchi.recensioni!.citazioni!.map(([testo, autore], i) => (
+                <figure key={i}><blockquote>{testo}</blockquote><figcaption>{autore}</figcaption></figure>
+              ))}
+            </div>
+            {props.urlRecensioni && (
+              <p className="tutte"><a className="btn-secondario" href={props.urlRecensioni} target="_blank" rel="noopener noreferrer">
+                {props.blocchi.recensioni!.link?.[0]?.[0] || "Leggi tutte le recensioni"} ↗</a></p>
             )}
           </div>
         </section>

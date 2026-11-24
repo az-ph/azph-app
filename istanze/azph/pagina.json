@@ -150,5 +150,32 @@
       ]
     ],
     "nota": "Scegliete un pacchetto, oppure nessuno. Per esigenze diverse (secondo operatore, save the date) chiedete a Mattia il pacchetto “Per sempre”."
+  },
+  {
+    "chiave": "recensioni",
+    "ordine": 75,
+    "quando": "preventivo",
+    "sopratitolo": "Dicono di me",
+    "titolo": "Le parole degli Sposi",
+    "citazioni": [
+      [
+        "Ha uno stile reportage bellissimo, riesce a catturare i momenti in modo naturale e spontaneo, senza mai essere invadente o pesante: le foto vengono da sé, perché lui è velocissimo e discreto nel coglierle.",
+        "Alessandro, maggio 2026"
+      ],
+      [
+        "È presente anche se non te ne accorgi ma anche qualche foto in posa, come desideravamo. Vi dico che abbiamo spostato la data di matrimonio perché volevamo assolutamente lui.",
+        "Sara, luglio 2026"
+      ],
+      [
+        "Cattura ogni attimo dai più significativi a quelli più divertenti. Presente dal momento dei preparativi fino alla fine della giornata, sa dare suggerimenti e rassicurazioni per ogni tipo di problema, momento o imprevisto!",
+        "Greta, settembre 2026"
+      ]
+    ],
+    "link": [
+      [
+        "Leggi tutte le recensioni",
+        ""
+      ]
+    ]
   }
 ]
