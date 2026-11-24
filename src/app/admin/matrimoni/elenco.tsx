@@ -60,7 +60,7 @@ export function ElencoMatrimoni({ elenco, oggi }: { elenco: VoceElenco[]; oggi: 
           <h2 className="text-sm font-semibold mb-3">{g.titolo} <span className="text-tenue font-normal">· {g.voci.length}</span></h2>
           <div className="f-carta overflow-x-auto">
             <table className="f-tabella">
-              <thead><tr><th>Sposi</th><th>Data</th><th className="hidden sm:table-cell">Location</th><th className="hidden md:table-cell">Codice</th><th>Stato</th></tr></thead>
+              <thead><tr><th>Sposi</th><th>Data</th><th className="hidden sm:table-cell">Location</th><th>Stato</th><th>Pagina</th><th className="hidden md:table-cell text-right">Codice</th></tr></thead>
               <tbody>
                 {g.voci.map((m) => {
                   const gg = m.data ? Math.round((Date.parse(m.data) - Date.parse(oggi)) / 86400000) : null;
@@ -72,11 +72,12 @@ export function ElencoMatrimoni({ elenco, oggi }: { elenco: VoceElenco[]; oggi: 
                         {m.data && <span className="block text-xs text-tenue">{dataEstesa(m.data).split(" ")[0]}{gg != null && gg >= 0 && gg <= 60 ? ` · tra ${gg} gg` : ""}</span>}
                       </td>
                       <td className="hidden sm:table-cell text-tenue max-w-[18rem] truncate">{m.location || "—"}</td>
-                      <td className="hidden md:table-cell tabular-nums text-tenue">{m.codice}</td>
                       <td>
                         <PillStato stato={m.stato} />
                         {m.senzaPreventivo && <span className="ml-2 text-xs text-errore">senza preventivo</span>}
                       </td>
+                      <td className="relative z-10">{m.token ? <a href={`/${m.token}`} target="_blank" rel="noopener noreferrer" className="f-link text-sm whitespace-nowrap">Apri ↗</a> : <span className="text-tenue">—</span>}</td>
+                      <td className="hidden md:table-cell tabular-nums text-tenue text-right">{m.codice}</td>
                     </tr>
                   );
                 })}
