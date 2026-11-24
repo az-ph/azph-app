@@ -24,7 +24,7 @@ export function elenco(voci: string[]): string {
  * Testi pronti per ogni messaggio. Restano {FIRMA} nella mail (nome breve nel testo, firma completa in coda)
  * e {NOME} su WhatsApp (il nome di chi riceve, scelto al momento dell'invio).
  */
-export function preparaMessaggi(modelli: Modello[], valori: Record<string, string>, extra: { omaggi: string[]; video: boolean; firma: string }): Pronto[] {
+export function preparaMessaggi(modelli: Modello[], valori: Record<string, string>, extra: { omaggi: string[]; video: boolean; firma: string; titoli?: Partial<Record<ChiaveMessaggio, string>> }): Pronto[] {
   const trova = (k: string) => modelli.find((m) => m.chiave === k);
   const v: Record<string, string> = { ...valori };
   delete v.FIRMA; delete v.NOME;
@@ -33,7 +33,8 @@ export function preparaMessaggi(modelli: Modello[], valori: Record<string, strin
   const video = trova("preventivo_video")?.corpo_mail;
   v.VIDEO = extra.video && video ? riempi(video, v) + "\n" : "";
 
-  return MESSAGGI.map(({ chiave, titolo }) => {
+  return MESSAGGI.map(({ chiave, titolo: base }) => {
+    const titolo = extra.titoli?.[chiave] || base;
     const m = trova(chiave);
     if (!m?.corpo_mail) return { chiave, titolo, oggetto: "", mail: "", whatsapp: "", manca: true };
     const mail = riempi(m.corpo_mail, v);

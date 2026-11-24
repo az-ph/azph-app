@@ -471,9 +471,9 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
     LINK: urlSposi, LINK_TIMELINE: `${urlSposi}#azp-timeline`, VERSIONE: prev ? `v${String(prev.versione).padStart(2, "0")}` : "",
     URL_RECENSIONI: imp.data?.url_recensioni ?? "", VIDEOMAKER: vm?.nome ?? "", VIDEOMAKER_TELEFONO: vm?.telefono ?? "",
   };
-  const pronti = preparaMessaggi(modelli.data ?? [], valori, { omaggi, video: !!opz.proponi_video && !mat.pagina_congiunta, firma: firma.testo });
+  const pronti = preparaMessaggi(modelli.data ?? [], valori, { omaggi, video: !!opz.proponi_video && !mat.pagina_congiunta, firma: firma.testo, titoli: { duo: marchio.nome_proposta_congiunta } });
   const persone = [...sposi].sort((a, b) => a.ordine - b.ordine).map((x) => ({ nome: x.nome ?? "", email: x.email?.trim() ?? "", telefono: x.telefono ?? "" }));
-  const titolo = Object.fromEntries([...MESSAGGI.map((m) => [m.chiave, m.titolo]), ["conferma_sposi", "Conferma"]]);
+  const titolo = Object.fromEntries([...MESSAGGI.map((m) => [m.chiave, m.chiave === "duo" && marchio.nome_proposta_congiunta ? marchio.nome_proposta_congiunta : m.titolo]), ["conferma_sposi", "Conferma"]]);
   type Voce = { il: string; cosa: string; come: string; nota?: string | null; prossimo?: string | null; id?: string; errore?: string | true | null };
   const storia: Voce[] = [
     ...(invii.data ?? []).map((x) => ({
