@@ -37,7 +37,7 @@ describe("Oggi", () => {
       base({ codice: "primo", stato: "qte_contatto", contatti: [{ tipo: "follow_up", il: "2026-11-10T10:00:00Z", canale: "whatsapp" }] }),
       base({ codice: "nuovo", stato: "qte_to_contact" }),
     ], oggi);
-    expect(c.daInviare.map((m) => m.codice)).toEqual(["nuovo"]);
-    expect(c.followup.map((m) => m.codice)).toEqual(["primo"]);
+    expect(c.daInviare.map((m) => m.codice)).toEqual(["nuovo", "primo"]);
+    expect(c.followup.map((m) => m.codice)).toEqual([]);
   });
 });
