@@ -6,7 +6,20 @@ export type MatrimonioOggi = {
   preventivo: { inviato: string | null; confermato: string | null } | null;
   aperture: number; ultimaApertura: string | null;
   importi: Record<string, number>; incassi: Incasso[];
+  /** Invii e follow-up: dall'app (mail, WhatsApp) e segnati a mano. */
+  contatti?: Contatto[];
 };
+export type Contatto = { tipo: "invio" | "follow_up"; il: string; canale: string; prossimo?: string | null };
+
+/** Primo invio del preventivo, ultimo contatto e data del prossimo follow-up (se fissata sull'ultimo contatto). */
+export function storiaContatti(m: MatrimonioOggi) {
+  const c = [...(m.contatti ?? [])];
+  if (m.preventivo?.inviato) c.push({ tipo: "invio", il: m.preventivo.inviato, canale: "app" });
+  c.sort((a, b) => a.il.localeCompare(b.il));
+  const invio = c.find((x) => x.tipo === "invio") ?? null;
+  const ultimo = c.at(-1) ?? null;
+  return { invio, ultimo, prossimo: ultimo?.prossimo ?? null, followUp: c.filter((x) => x.tipo === "follow_up").length };
+}
 export type Pagamento = { m: MatrimonioOggi; rata: "acconto" | "saldo" | "album"; manca: number; scadenza: string | null; scaduto: boolean };
 
 export const GIORNI_KICKOFF = 28;
@@ -42,10 +55,14 @@ export function cosaFare(elenco: MatrimonioOggi[], oggi: string) {
     .filter((m) => m.stato === "wdg_confermato" && futuro(m) && !m.kickoff && giorni(oggi, m.data!) <= GIORNI_KICKOFF)
     .sort((a, b) => a.data!.localeCompare(b.data!));
 
-  const daInviare = preventivi.filter((m) => !m.preventivo?.inviato);
+  const daInviare = preventivi.filter((m) => !storiaContatti(m).invio).sort((a, b) => a.codice.localeCompare(b.codice));
   const followup = preventivi
-    .filter((m) => m.preventivo?.inviato && !m.preventivo.confermato && giorni(m.preventivo.inviato, oggi) >= GIORNI_FOLLOWUP)
-    .sort((a, b) => a.preventivo!.inviato!.localeCompare(b.preventivo!.inviato!));
+    .filter((m) => {
+      const st = storiaContatti(m);
+      if (!st.invio || m.preventivo?.confermato) return false;
+      return st.prossimo ? st.prossimo <= oggi : giorni(st.ultimo!.il, oggi) >= GIORNI_FOLLOWUP;
+    })
+    .sort((a, b) => storiaContatti(a).ultimo!.il.localeCompare(storiaContatti(b).ultimo!.il));
 
   const prossimi = confermati.filter((m) => futuro(m) && giorni(oggi, m.data!) <= GIORNI_PROSSIMI).sort((a, b) => a.data!.localeCompare(b.data!));
 

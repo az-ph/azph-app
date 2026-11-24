@@ -24,14 +24,17 @@ export default async function LayoutAdmin({ children }: { children: React.ReactN
   // Accento dalle impostazioni dell'istanza (colori.accento / accento_scuro, altrimenti i colori del marchio)
   const { data: imp } = await (await supabaseSessione()).from("impostazioni").select("marchio, colori").maybeSingle();
   const colori = (imp?.colori ?? {}) as Record<string, string>;
-  const marchio = String(((imp?.marchio ?? {}) as Record<string, unknown>).nome ?? "");
+  const mm = (imp?.marchio ?? {}) as Record<string, unknown>;
+  const marchio = String(mm.nome ?? "");
+  const url = (v: unknown) => (typeof v === "string" && /^(https:\/\/|\/)/.test(v) ? v : undefined);
+  const logo = { chiaro: url(mm.logo_stretto_url), scuro: url(mm.logo_stretto_scuro_url) };
   const chiaro = [colori.accento, colori.verde_scuro].find((c) => c && HEX.test(c));
   const scuro = [colori.accento_scuro, colori.salvia].find((c) => c && HEX.test(c));
   const stile = { ...(chiaro && { "--accento-chiaro": chiaro }), ...(scuro && { "--accento-scuro": scuro }) } as React.CSSProperties;
 
   return (
     <div className="fede" data-tema={tema} style={stile}>
-      <Rail iniziale="F" marchio={marchio} temaIniziale={tema} esci={esci} />
+      <Rail iniziale={(marchio || "A").slice(0, 1).toUpperCase()} marchio={marchio} logo={logo} temaIniziale={tema} esci={esci} />
       <div className="pt-14 sm:pt-0 sm:pl-16">
         <main className="px-4 py-6 sm:px-10 sm:py-8 max-w-[1240px]">{children}</main>
       </div>

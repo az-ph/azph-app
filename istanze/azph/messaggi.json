@@ -58,5 +58,11 @@
     "oggetto": "Foto e video per il vostro Matrimonio del {DATA_LUNGA}",
     "corpo_mail": "Ciao {NOMI},\ngrazie per l'interesse! Come d'accordo vi inviamo la proposta foto e video per il vostro Matrimonio del {DATA_LUNGA}:\n[!Guarda la proposta]({LINK})\n\nNella pagina trovate chi siamo, come lavoriamo, la timeline della giornata e il pacchetto foto + video, con gli opzionali che potete aggiungere. I prezzi sono \"finiti\" e quando siete pronti potete confermare direttamente dalla pagina.\n\nRestiamo a disposizione per un incontro conoscitivo, senza alcun impegno da parte vostra.\n\nA presto\n{FIRMA}",
     "corpo_whatsapp": null
+  },
+  {
+    "chiave": "follow_up",
+    "oggetto": "Il vostro preventivo per il Matrimonio del {DATA_LUNGA}",
+    "corpo_mail": "Ciao {NOMI},\nvi scrivo per sapere se avete avuto modo di guardare il preventivo per il vostro Matrimonio del {DATA_LUNGA}. Il link è sempre lo stesso:\n[!Guarda il preventivo]({LINK})\n\nSe avete domande, volete cambiare qualcosa o vi serve un chiarimento, sono qui: possiamo anche sentirci al telefono o vederci per un incontro conoscitivo, senza alcun impegno da parte vostra.\n\nA presto\n{FIRMA}",
+    "corpo_whatsapp": "Ciao {NOME}, come va? Avete avuto modo di guardare il preventivo per il Matrimonio del {DATA_LUNGA}? Se avete domande o volete cambiare qualcosa sono qui, possiamo anche sentirci al telefono. Il link è sempre questo >> {LINK}"
   }
 ]

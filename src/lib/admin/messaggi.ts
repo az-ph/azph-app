@@ -4,6 +4,7 @@ import { perWhatsapp, riempi } from "@/lib/mail/testo";
 export const MESSAGGI = [
   { chiave: "preventivo", titolo: "Preventivo", segnaInviato: true },
   { chiave: "aggiornato", titolo: "Preventivo aggiornato", segnaInviato: true },
+  { chiave: "follow_up", titolo: "Follow up", segnaInviato: false },
   { chiave: "duo", titolo: "Proposta foto + video", segnaInviato: true },
   { chiave: "sposi", titolo: "Area Sposi", segnaInviato: false },
   { chiave: "timeline", titolo: "Timeline aggiornata", segnaInviato: false },
@@ -44,7 +45,7 @@ export function preparaMessaggi(modelli: Modello[], valori: Record<string, strin
 /** Messaggio proposto all'apertura della scheda, in base a dove siamo con il preventivo. */
 export function messaggioSuggerito(p: { confermato: boolean; inviato: boolean; congiunta: boolean }): ChiaveMessaggio {
   if (p.confermato) return "sposi";
-  if (p.inviato) return "aggiornato";
+  if (p.inviato) return "follow_up";
   return p.congiunta ? "duo" : "preventivo";
 }
 

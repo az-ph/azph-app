@@ -14,6 +14,7 @@ import { AvvisoData } from "../avviso-data";
 import { localeRoma } from "@/lib/google/calendario";
 import { Messaggi } from "../messaggi";
 import { MESSAGGI, messaggioSuggerito, preparaMessaggi } from "@/lib/admin/messaggi";
+import { eliminaContatto, registraContatto } from "../messaggi-azioni";
 import { stileDaColori } from "@/lib/mail/testo";
 import { Campo, Riquadro, Spunta, inp } from "../campi";
 import { Kpi, PillStato, Testata, giorniDa } from "../../ui";
@@ -442,10 +443,11 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
 }) {
   if (!urlSposi) return <Riquadro><p className="text-sm text-tenue">Questo Matrimonio non ha un link Sposi: crealo prima di mandare messaggi.</p></Riquadro>;
   const supabase = await supabaseSessione();
-  const [imp, modelli, invii] = await Promise.all([
+  const [imp, modelli, invii, contatti] = await Promise.all([
     supabase.from("impostazioni").select("marchio, colori, firma, url_recensioni").single(),
     supabase.from("modello_messaggio").select("chiave, oggetto, corpo_mail, corpo_whatsapp"),
     supabase.from("invio").select("modello, canale, stato, inviato_il, created_at, errore").eq("matrimonio_id", mat.id).order("created_at", { ascending: false }).limit(30),
+    supabase.from("contatto").select("id, tipo, canale, avvenuto_il, nota, prossimo_il").eq("matrimonio_id", mat.id),
   ]);
   const marchio = (imp.data?.marchio ?? {}) as Record<string, string | undefined>;
   const firma = { testo: imp.data?.firma || marchio.firma || marchio.titolare || "", html: marchio.firma_mail_html || undefined };
@@ -472,24 +474,64 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
   const pronti = preparaMessaggi(modelli.data ?? [], valori, { omaggi, video: !!opz.proponi_video && !mat.pagina_congiunta, firma: firma.testo });
   const persone = [...sposi].sort((a, b) => a.ordine - b.ordine).map((x) => ({ nome: x.nome ?? "", email: x.email?.trim() ?? "", telefono: x.telefono ?? "" }));
   const titolo = Object.fromEntries([...MESSAGGI.map((m) => [m.chiave, m.titolo]), ["conferma_sposi", "Conferma"]]);
+  type Voce = { il: string; cosa: string; come: string; nota?: string | null; prossimo?: string | null; id?: string; errore?: string | true | null };
+  const storia: Voce[] = [
+    ...(invii.data ?? []).map((x) => ({
+      il: x.inviato_il ?? x.created_at, cosa: titolo[x.modello ?? ""] ?? x.modello ?? "", come: x.canale === "mail" ? "mail dall'app" : "WhatsApp dall'app",
+      errore: x.stato === "errore" ? (x.errore || true) : null,
+    })),
+    ...(contatti.data ?? []).map((x) => ({
+      il: x.avvenuto_il, cosa: x.tipo === "invio" ? "Invio del preventivo" : "Follow up", come: CANALE_CONTATTO[x.canale] ?? x.canale,
+      nota: x.nota, prossimo: x.prossimo_il, id: x.id,
+    })),
+  ].sort((a, b) => b.il.localeCompare(a.il));
   return (
     <div className="flex flex-col gap-4">
     <Messaggi mid={mat.id} pronti={pronti} persone={persone} firma={firma} stile={stileDaColori(imp.data?.colori as Record<string, string> | null)}
       suggerito={messaggioSuggerito({ confermato: !!prev?.confermato_il, inviato: !!prev?.inviato_il, congiunta: mat.pagina_congiunta })} />
-      {(invii.data ?? []).length > 0 && (
-        <Riquadro titolo="Inviati" className="max-w-3xl">
-          <ul className="f-righe text-sm">{(invii.data ?? []).map((x, i) => (
-            <li key={i}>
-              <span>{titolo[x.modello ?? ""] ?? x.modello} <span className="text-tenue">· {x.canale === "mail" ? "mail" : "WhatsApp aperto"}</span>
-                {x.stato === "errore" && <span className="text-errore"> · non inviata{x.errore ? ` (${x.errore})` : ""}</span>}</span>
-              <span className="tabular-nums text-tenue">{dataOra(x.inviato_il ?? x.created_at)}</span>
-            </li>
-          ))}</ul>
+      <div className="grid lg:grid-cols-2 gap-4 items-start">
+        <Riquadro titolo="Segna un contatto" azione={<span className="text-xs text-tenue">telefonate, WhatsApp, incontri, invii fuori dall&apos;app</span>}>
+          <Modulo azione={registraContatto} etichetta="Segna">
+            <input type="hidden" name="matrimonio_id" value={mat.id} />
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Campo etichetta="Cosa">
+                <select name="tipo" className={inp} defaultValue={prev?.inviato_il ? "follow_up" : "invio"}>
+                  <option value="follow_up">Follow up</option><option value="invio">Invio del preventivo</option>
+                </select>
+              </Campo>
+              <Campo etichetta="Come">
+                <select name="canale" className={inp} defaultValue="whatsapp">
+                  {Object.entries(CANALE_CONTATTO).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+                </select>
+              </Campo>
+              <Campo etichetta="Data e ora"><input type="datetime-local" name="avvenuto_il" required defaultValue={localeRoma(new Date().toISOString())} className={inp} /></Campo>
+              <Campo etichetta="Prossimo follow-up (facoltativo)"><input type="date" name="prossimo_il" className={inp} /></Campo>
+              <Campo etichetta="Nota" largo><input name="nota" maxLength={500} placeholder="es. ci pensano, risentire a gennaio" className={inp} /></Campo>
+            </div>
+          </Modulo>
         </Riquadro>
-      )}
+        <Riquadro titolo="Storia dei contatti">
+          {storia.length ? (
+            <ul className="f-righe text-sm">{storia.map((x, i) => (
+              <li key={i}>
+                <span className="min-w-0">{x.cosa} <span className="text-tenue">· {x.come}</span>
+                  {x.errore && <span className="text-errore"> · non inviata{x.errore !== true ? ` (${x.errore})` : ""}</span>}
+                  {x.nota && <span className="block text-xs text-tenue">{x.nota}</span>}
+                  {x.prossimo && <span className="block text-xs text-avviso">prossimo follow-up dal {data(x.prossimo)}</span>}</span>
+                <span className="flex items-center gap-3 tabular-nums text-tenue whitespace-nowrap">{dataOra(x.il)}
+                  {x.id && <form action={eliminaContatto}><input type="hidden" name="id" value={x.id} /><input type="hidden" name="matrimonio_id" value={mat.id} />
+                    <button className="hover:text-errore text-xs" aria-label="Elimina contatto" title="Elimina">✕</button></form>}
+                </span>
+              </li>
+            ))}</ul>
+          ) : <p className="text-sm text-tenue">Nessun contatto ancora.</p>}
+        </Riquadro>
+      </div>
     </div>
   );
 }
+
+const CANALE_CONTATTO: Record<string, string> = { whatsapp: "WhatsApp", telefono: "Telefono", mail: "Mail", persona: "Di persona", altro: "Altro" };
 
 function dataOra(t: string) {
   const p = Object.fromEntries(new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
