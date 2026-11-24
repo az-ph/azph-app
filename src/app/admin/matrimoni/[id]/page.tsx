@@ -14,7 +14,7 @@ import { AvvisoData } from "../avviso-data";
 import { localeRoma } from "@/lib/google/calendario";
 import { Messaggi } from "../messaggi";
 import { MESSAGGI, messaggioSuggerito, preparaMessaggi } from "@/lib/admin/messaggi";
-import { eliminaContatto, registraContatto } from "../messaggi-azioni";
+import { aggiornaContatto, eliminaContatto, registraContatto } from "../messaggi-azioni";
 import { stileDaColori } from "@/lib/mail/testo";
 import { Campo, Riquadro, Spunta, inp } from "../campi";
 import { Kpi, PillStato, Testata, giorniDa } from "../../ui";
@@ -474,7 +474,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
   const pronti = preparaMessaggi(modelli.data ?? [], valori, { omaggi, video: !!opz.proponi_video && !mat.pagina_congiunta, firma: firma.testo, titoli: { duo: marchio.nome_proposta_congiunta } });
   const persone = [...sposi].sort((a, b) => a.ordine - b.ordine).map((x) => ({ nome: x.nome ?? "", email: x.email?.trim() ?? "", telefono: x.telefono ?? "" }));
   const titolo = Object.fromEntries([...MESSAGGI.map((m) => [m.chiave, m.chiave === "duo" && marchio.nome_proposta_congiunta ? marchio.nome_proposta_congiunta : m.titolo]), ["conferma_sposi", "Conferma"]]);
-  type Voce = { il: string; cosa: string; come: string; nota?: string | null; prossimo?: string | null; id?: string; errore?: string | true | null };
+  type Voce = { il: string; cosa: string; come: string; nota?: string | null; prossimo?: string | null; id?: string; errore?: string | true | null; tipo?: string; canale?: string };
   const storia: Voce[] = [
     ...(invii.data ?? []).map((x) => ({
       il: x.inviato_il ?? x.created_at, cosa: titolo[x.modello ?? ""] ?? x.modello ?? "", come: x.canale === "mail" ? "mail dall'app" : "WhatsApp dall'app",
@@ -482,7 +482,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
     })),
     ...(contatti.data ?? []).map((x) => ({
       il: x.avvenuto_il, cosa: x.tipo === "invio" ? "Invio del preventivo" : "Contatto", come: CANALE_CONTATTO[x.canale] ?? x.canale,
-      nota: x.nota, prossimo: x.prossimo_il, id: x.id,
+      nota: x.nota, prossimo: x.prossimo_il, id: x.id, tipo: x.tipo, canale: x.canale,
     })),
   ].sort((a, b) => b.il.localeCompare(a.il));
   return (
@@ -510,7 +510,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
             </div>
           </Modulo>
         </Riquadro>
-        <Riquadro titolo="Storia dei contatti">
+        <Riquadro titolo="Storia dei contatti" className="relative">
           {storia.length ? (
             <ul className="f-righe text-sm">{storia.map((x, i) => (
               <li key={i}>
@@ -518,7 +518,25 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
                   {x.errore && <span className="text-errore"> · non inviata{x.errore !== true ? ` (${x.errore})` : ""}</span>}
                   {x.nota && <span className="block text-xs text-tenue">{x.nota}</span>}
                   {x.prossimo && <span className="block text-xs text-avviso">prossimo follow-up dal {data(x.prossimo)}</span>}</span>
-                <span className="flex items-center gap-3 tabular-nums text-tenue whitespace-nowrap">{dataOra(x.il)}
+                <span className="flex items-start gap-3 tabular-nums text-tenue whitespace-nowrap">{dataOra(x.il)}
+                  {x.id && (
+                    <details className="group">
+                      <summary className="list-none cursor-pointer hover:text-testo text-xs" aria-label="Modifica contatto" title="Modifica">✎</summary>
+                      <div className="absolute right-5 z-20 mt-2 w-[min(28rem,85vw)] f-carta p-4 shadow-lg whitespace-normal text-left text-testo">
+                        <Modulo azione={aggiornaContatto} etichetta="Salva">
+                          <input type="hidden" name="id" value={x.id} />
+                          <input type="hidden" name="matrimonio_id" value={mat.id} />
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <Campo etichetta="Cosa"><select name="tipo" defaultValue={x.tipo} className={inp}><option value="follow_up">Contatto o follow up</option><option value="invio">Invio del preventivo</option></select></Campo>
+                            <Campo etichetta="Come"><select name="canale" defaultValue={x.canale} className={inp}>{Object.entries(CANALE_CONTATTO).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></Campo>
+                            <Campo etichetta="Data e ora"><input type="datetime-local" name="avvenuto_il" required defaultValue={localeRoma(x.il)} className={inp} /></Campo>
+                            <Campo etichetta="Prossimo follow-up"><input type="date" name="prossimo_il" defaultValue={x.prossimo ?? ""} className={inp} /></Campo>
+                            <Campo etichetta="Nota" largo><input name="nota" maxLength={500} defaultValue={x.nota ?? ""} className={inp} /></Campo>
+                          </div>
+                        </Modulo>
+                      </div>
+                    </details>
+                  )}
                   {x.id && <form action={eliminaContatto}><input type="hidden" name="id" value={x.id} /><input type="hidden" name="matrimonio_id" value={mat.id} />
                     <button className="hover:text-errore text-xs" aria-label="Elimina contatto" title="Elimina">✕</button></form>}
                 </span>
