@@ -26,8 +26,8 @@ const VOCI = [
 ];
 
 /** Barra laterale compatta (in alto su telefono): solo icone, il nome compare al passaggio. */
-export function Rail({ iniziale, marchio, temaIniziale, esci }: {
-  iniziale: string; marchio: string; temaIniziale: "chiaro" | "scuro"; esci: () => Promise<void>;
+export function Rail({ iniziale, marchio, logo, temaIniziale, esci }: {
+  iniziale: string; marchio: string; logo?: { chiaro?: string; scuro?: string }; temaIniziale: "chiaro" | "scuro"; esci: () => Promise<void>;
 }) {
   const p = usePathname();
   const [tema, setTema] = useState(temaIniziale);
@@ -40,8 +40,15 @@ export function Rail({ iniziale, marchio, temaIniziale, esci }: {
   }
   return (
     <aside className="f-rail fixed z-30 inset-x-0 top-0 h-14 sm:inset-x-auto sm:left-0 sm:bottom-0 sm:h-auto sm:w-16 flex sm:flex-col items-center gap-2 sm:gap-5 px-3 sm:px-0 sm:py-4 bg-pannello border-b sm:border-b-0 sm:border-r border-bordo">
-      <Link href="/admin" data-etichetta={`Fede · ${marchio}`} aria-label="Fede, inizio"
-        className="!size-9 !rounded-[10px] !bg-accento !text-su-accento titolo font-semibold text-base">{iniziale}</Link>
+      {logo?.chiaro ? (
+        <Link href="/admin" data-etichetta={marchio || "Inizio"} aria-label={`${marchio}, inizio`} className="!size-10 hover:!bg-transparent">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={tema === "scuro" ? logo.scuro || logo.chiaro : logo.chiaro} alt="" className="max-h-9 max-w-10 object-contain" />
+        </Link>
+      ) : (
+        <Link href="/admin" data-etichetta={marchio || "Inizio"} aria-label="Inizio"
+          className="!size-9 !rounded-[10px] !bg-accento !text-su-accento titolo font-semibold text-base">{iniziale}</Link>
+      )}
       <nav aria-label="Menu" className="flex sm:flex-col gap-1">
         {VOCI.map((v) => (
           <Link key={v.href} href={v.href} data-etichetta={v.t} aria-label={v.t} aria-current={v.attivo(p) ? "page" : undefined}><Icona d={v.i} /></Link>

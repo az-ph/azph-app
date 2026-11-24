@@ -24,4 +24,14 @@ describe("Oggi", () => {
     expect(r.followup.map((m) => m.codice)).toEqual(["follow"]);
     expect(r.prossimi.map((m) => m.codice)).toEqual(["acc", "acc-ok"]);
   });
+  it("contatti segnati a mano: invio del foglio, follow-up recente, prossimo fissato", () => {
+    const r = cosaFare([
+      base({ codice: "foglio", stato: "qte_quote", contatti: [{ tipo: "invio", il: "2026-10-01T10:00:00Z", canale: "mail" }] }),
+      base({ codice: "sentito", stato: "qte_quote", contatti: [{ tipo: "invio", il: "2026-10-01T10:00:00Z", canale: "mail" }, { tipo: "follow_up", il: "2026-11-20T10:00:00Z", canale: "telefono" }] }),
+      base({ codice: "gennaio", stato: "qte_quote", contatti: [{ tipo: "invio", il: "2026-10-01T10:00:00Z", canale: "mail" }, { tipo: "follow_up", il: "2026-11-01T10:00:00Z", canale: "whatsapp", prossimo: "2027-01-10" }] }),
+      base({ codice: "scaduto", stato: "qte_quote", contatti: [{ tipo: "invio", il: "2026-09-01T10:00:00Z", canale: "mail" }, { tipo: "follow_up", il: "2026-11-01T10:00:00Z", canale: "whatsapp", prossimo: "2026-11-20" }] }),
+    ], oggi);
+    expect(r.daInviare).toEqual([]);
+    expect(r.followup.map((m) => m.codice)).toEqual(["foglio", "scaduto"]);
+  });
 });

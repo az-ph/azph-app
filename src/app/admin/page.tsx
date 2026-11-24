@@ -2,13 +2,14 @@ import Link from "next/link";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { data, dataEstesa, euroBreve } from "@/lib/formato";
 import { STATI, nomiBrevi } from "@/lib/admin/stati";
-import { GIORNI_FOLLOWUP, GIORNI_KICKOFF, GIORNI_PROSSIMI, cosaFare, giorniTra, type MatrimonioOggi } from "@/lib/admin/oggi";
+import { GIORNI_FOLLOWUP, GIORNI_KICKOFF, GIORNI_PROSSIMI, cosaFare, giorniTra, storiaContatti, type MatrimonioOggi } from "@/lib/admin/oggi";
 import { salvaKickoff } from "./matrimoni/azioni";
 import { Modulo } from "./matrimoni/modulo";
 import { Kpi, PillStato, Testata } from "./ui";
 
 const APERTI = STATI.map((s) => s.valore).filter((v) => v.startsWith("qte") || v.startsWith("wdg"));
 const NOME_RATA = { acconto: "Acconto", saldo: "Saldo", album: "Album" } as const;
+const CANALE: Record<string, string> = { mail: "mail", whatsapp: "WhatsApp", telefono: "telefono", persona: "di persona", altro: "altro" };
 
 export default async function Oggi() {
   const supabase = await supabaseSessione();
@@ -18,10 +19,12 @@ export default async function Oggi() {
   if (error) return <p className="text-errore">Il database non risponde: {error.message}</p>;
   const ids = (righe ?? []).map((m) => m.id);
   const idsPreventivi = (righe ?? []).filter((m) => m.stato.startsWith("qte")).map((m) => m.id);
-  const [importi, incassi, aperture] = await Promise.all([
+  const [importi, incassi, aperture, contatti, invii] = await Promise.all([
     supabase.from("importo").select("matrimonio_id, voce, importo").in("matrimonio_id", ids),
     supabase.from("pagamento").select("matrimonio_id, tipo, importo, pagato_il").in("matrimonio_id", ids),
     supabase.from("evento_pagina").select("matrimonio_id, avvenuto_il").eq("tipo", "apertura").in("matrimonio_id", idsPreventivi),
+    supabase.from("contatto").select("matrimonio_id, tipo, canale, avvenuto_il, prossimo_il").in("matrimonio_id", idsPreventivi),
+    supabase.from("invio").select("matrimonio_id, modello, canale, inviato_il").eq("stato", "inviato").in("modello", ["preventivo", "aggiornato", "duo", "follow_up"]).in("matrimonio_id", idsPreventivi),
   ]);
 
   const elenco: MatrimonioOggi[] = (righe ?? []).map((m) => {
@@ -34,6 +37,12 @@ export default async function Oggi() {
       aperture: ap.length, ultimaApertura: ap.at(-1) ?? null,
       importi: Object.fromEntries((importi.data ?? []).filter((x) => x.matrimonio_id === m.id).map((x) => [x.voce, x.importo])),
       incassi: (incassi.data ?? []).filter((x) => x.matrimonio_id === m.id),
+      contatti: [
+        ...(contatti.data ?? []).filter((x) => x.matrimonio_id === m.id)
+          .map((x) => ({ tipo: x.tipo as "invio" | "follow_up", il: x.avvenuto_il, canale: x.canale, prossimo: x.prossimo_il })),
+        ...(invii.data ?? []).filter((x) => x.matrimonio_id === m.id && x.inviato_il)
+          .map((x) => ({ tipo: (x.modello === "follow_up" ? "follow_up" : "invio") as "invio" | "follow_up", il: x.inviato_il!, canale: x.canale })),
+      ],
     };
   });
   const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
@@ -50,7 +59,7 @@ export default async function Oggi() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         <Kpi etichetta="Da incassare" valore={daIncassare ? euroBreve(daIncassare) : "—"} nota={f.pagamenti.some((p) => p.scaduto) ? `${f.pagamenti.filter((p) => p.scaduto).length} scaduti` : "niente di scaduto"} tono={f.pagamenti.some((p) => p.scaduto) ? "avviso" : "ok"} />
         <Kpi etichetta="Kick-off da fissare" valore={f.kickoff.length} nota={`Matrimoni entro ${GIORNI_KICKOFF} giorni`} tono={f.kickoff.length ? "avviso" : "ok"} />
-        <Kpi etichetta="Preventivi da seguire" valore={f.daInviare.length + f.followup.length} nota={`${f.daInviare.length} da inviare · ${f.followup.length} da risentire`} />
+        <Kpi etichetta="Preventivi" valore={f.daInviare.length + f.followup.length} nota={`${f.daInviare.length} da fare · ${f.followup.length} follow up`} />
         <Kpi etichetta="Prossimi Matrimoni" valore={f.prossimi.length} nota={`nei prossimi ${GIORNI_PROSSIMI} giorni`} />
       </div>
 
@@ -76,17 +85,28 @@ export default async function Oggi() {
           ))}
         </Sezione>
 
-        <Sezione titolo="Preventivi da seguire" vuoto="Nessun preventivo da inviare o da risentire.">
+        <Sezione titolo="Preventivi da fare" vuoto="Nessun preventivo da preparare o da inviare.">
           {f.daInviare.map((m) => (
             <Riga key={m.id} href={scheda(m, m.preventivo ? "messaggi" : "preventivo")} nomi={m.nomi}
-              dettaglio={`${m.preventivo ? "Preventivo da inviare" : "Preventivo da preparare"}${m.data ? ` · Matrimonio il ${data(m.data)}` : ""}`}
+              dettaglio={`${m.preventivo ? "Da inviare" : "Da preparare"} · ${m.codice}${m.data ? ` · Matrimonio il ${data(m.data)}` : ""}`}
               destra={<PillStato stato={m.stato} />} />
           ))}
-          {f.followup.map((m) => (
-            <Riga key={m.id} href={scheda(m, "messaggi")} nomi={m.nomi}
-              dettaglio={`Inviato il ${data(m.preventivo!.inviato)} · ${m.aperture ? `aperto ${m.aperture} ${m.aperture === 1 ? "volta" : "volte"}, l'ultima il ${data(m.ultimaApertura)}` : "mai aperto"}`}
-              destra={<span className="text-xs text-avviso whitespace-nowrap">da {giorniTra(m.preventivo!.inviato!, oggi)} gg</span>} />
-          ))}
+        </Sezione>
+
+        <Sezione titolo="Follow up" vuoto="Nessun preventivo da risentire.">
+          {f.followup.map((m) => {
+            const st = storiaContatti(m);
+            const canale = st.ultimo && st.ultimo.canale !== "app" ? ` (${CANALE[st.ultimo.canale] ?? st.ultimo.canale})` : "";
+            return (
+              <Riga key={m.id} href={scheda(m, "messaggi")} nomi={m.nomi}
+                dettaglio={[
+                  `Inviato il ${data(st.invio!.il)}`,
+                  st.followUp ? `ultimo contatto il ${data(st.ultimo!.il)}${canale}` : null,
+                  m.aperture ? `aperto ${m.aperture} ${m.aperture === 1 ? "volta" : "volte"}` : "mai aperto",
+                ].filter(Boolean).join(" · ")}
+                destra={<span className="text-xs text-avviso whitespace-nowrap">{st.prossimo ? `da risentire dal ${data(st.prossimo)}` : `da ${giorniTra(st.ultimo!.il, oggi)} gg`}</span>} />
+            );
+          })}
         </Sezione>
 
         <Sezione titolo="Prossimi Matrimoni" vuoto={`Nessun Matrimonio nei prossimi ${GIORNI_PROSSIMI} giorni.`}>

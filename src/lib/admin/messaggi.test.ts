@@ -28,7 +28,7 @@ describe("messaggi", () => {
   });
   it("elenco, suggerito, numero", () => {
     expect(elenco(["a", "b", "c"])).toBe("a, b e c");
-    expect(messaggioSuggerito({ confermato: false, inviato: true, congiunta: false })).toBe("aggiornato");
+    expect(messaggioSuggerito({ confermato: false, inviato: true, congiunta: false })).toBe("follow_up");
     expect(numeroWhatsapp("+39 348 006 1131")).toBe("393480061131");
     expect(numeroWhatsapp("348 0061131")).toBe("393480061131");
     expect(numeroWhatsapp("ciao")).toBeNull();

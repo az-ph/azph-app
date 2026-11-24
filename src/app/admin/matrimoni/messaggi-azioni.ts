@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { sincronizzaMatrimonio } from "@/lib/admin/sincronizza-calendario";
+import { istanteDaRoma } from "@/lib/admin/ora-roma";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { componi, stileDaColori } from "@/lib/mail/testo";
 import { inviaMail } from "@/lib/mail/resend";
@@ -83,4 +84,47 @@ export async function registraWhatsapp(matrimonioId: string, chiave: string): Pr
   await supabase.from("invio").insert({ matrimonio_id: mid, modello: k, canale: "whatsapp", stato: "inviato", inviato_il: new Date().toISOString() });
   await segnaPreventivoInviato(mid, k);
   revalidatePath(`/admin/matrimoni/${mid}`);
+}
+
+// ---------- Contatti segnati a mano ----------
+
+const Contatto = z.object({
+  matrimonio_id: z.string().uuid(),
+  tipo: z.enum(["invio", "follow_up"]),
+  canale: z.enum(["mail", "whatsapp", "telefono", "persona", "altro"]),
+  avvenuto_il: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Scegli data e ora."),
+  nota: z.string().trim().max(500).optional().default(""),
+  prossimo_il: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal("")).optional().default(""),
+});
+
+export async function registraContatto(_: Esito, fd: FormData): Promise<Esito> {
+  const r = Contatto.safeParse(Object.fromEntries(fd));
+  if (!r.success) return { errore: r.error.issues[0]?.message ?? "Dati non validi." };
+  const d = r.data;
+  const supabase = await supabaseSessione();
+  const { error } = await supabase.from("contatto").insert({
+    matrimonio_id: d.matrimonio_id, tipo: d.tipo, canale: d.canale, avvenuto_il: istanteDaRoma(d.avvenuto_il),
+    nota: d.nota || null, prossimo_il: d.prossimo_il || null,
+  });
+  if (error) return { errore: error.message };
+  // Un invio segnato a mano porta lo stato da Da contattare a Preventivo, come quello dall'app
+  if (d.tipo === "invio") {
+    const { data: passato } = await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", d.matrimonio_id).eq("stato", "qte_to_contact").select("id");
+    if (passato?.length) {
+      const h = await headers();
+      await sincronizzaMatrimonio(supabase, d.matrimonio_id, process.env.URL || `https://${h.get("host") ?? ""}`);
+    }
+  }
+  revalidatePath(`/admin/matrimoni/${d.matrimonio_id}`);
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function eliminaContatto(fd: FormData): Promise<void> {
+  const id = z.string().uuid().parse(fd.get("id"));
+  const mid = z.string().uuid().parse(fd.get("matrimonio_id"));
+  const supabase = await supabaseSessione();
+  await supabase.from("contatto").delete().eq("id", id).eq("matrimonio_id", mid);
+  revalidatePath(`/admin/matrimoni/${mid}`);
+  revalidatePath("/admin");
 }
