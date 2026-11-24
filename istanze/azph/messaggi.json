@@ -86,7 +86,7 @@
   {
     "chiave": "album_proposta",
     "oggetto": "Il vostro Album",
-    "corpo_mail": "Ciao {NOMI},\nspero che le foto vi stiano piacendo! Vi scrivo perché siete ancora in tempo per realizzare l'album: 30x30, copertina in cotone personalizzabile nel colore e nei testi, e per i genitori le repliche 20x20.\nPotete sceglierlo direttamente dalla vostra pagina:\n[!Scegliete il vostro Album]({LINK_PROPOSTA})\n\nSe preferite vederne uno dal vivo prima di decidere, organizziamo volentieri un incontro in studio.\n\nA presto\n{FIRMA}",
+    "corpo_mail": "Ciao {NOMI},\nspero che le foto vi stiano piacendo! Vi scrivo perché siete ancora in tempo per realizzare l'album: 30x30, nella versione Standard o Premium (con copertina in cotone personalizzabile nel colore e nei testi), e per i genitori le repliche 20x20.\nPotete sceglierlo direttamente dalla vostra pagina:\n[!Scegliete il vostro Album]({LINK_PROPOSTA})\n\nSe preferite vederne uno dal vivo prima di decidere, organizziamo volentieri un incontro in studio.\n\nA presto\n{FIRMA}",
     "corpo_whatsapp": null
   }
 ]
