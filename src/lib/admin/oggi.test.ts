@@ -33,5 +33,11 @@ describe("Oggi", () => {
     ], oggi);
     expect(r.daInviare).toEqual([]);
     expect(r.followup.map((m) => m.codice)).toEqual(["foglio", "scaduto"]);
+    const c = cosaFare([
+      base({ codice: "primo", stato: "qte_contatto", contatti: [{ tipo: "follow_up", il: "2026-11-10T10:00:00Z", canale: "whatsapp" }] }),
+      base({ codice: "nuovo", stato: "qte_to_contact" }),
+    ], oggi);
+    expect(c.daInviare.map((m) => m.codice)).toEqual(["nuovo"]);
+    expect(c.followup.map((m) => m.codice)).toEqual(["primo"]);
   });
 });

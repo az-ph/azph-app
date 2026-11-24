@@ -55,11 +55,14 @@ export function cosaFare(elenco: MatrimonioOggi[], oggi: string) {
     .filter((m) => m.stato === "wdg_confermato" && futuro(m) && !m.kickoff && giorni(oggi, m.data!) <= GIORNI_KICKOFF)
     .sort((a, b) => a.data!.localeCompare(b.data!));
 
-  const daInviare = preventivi.filter((m) => !storiaContatti(m).invio).sort((a, b) => a.codice.localeCompare(b.codice));
+  // Da fare: chi è ancora da contattare, e i preventivi senza invio registrato
+  const daInviare = preventivi.filter((m) => m.stato === "qte_to_contact" || (m.stato === "qte_quote" && !storiaContatti(m).invio))
+    .sort((a, b) => a.codice.localeCompare(b.codice));
+  // Follow up: primo contatto o preventivo inviato, quando è il momento di risentirli
   const followup = preventivi
     .filter((m) => {
       const st = storiaContatti(m);
-      if (!st.invio || m.preventivo?.confermato) return false;
+      if (m.stato === "qte_to_contact" || !st.ultimo || m.preventivo?.confermato) return false;
       return st.prossimo ? st.prossimo <= oggi : giorni(st.ultimo!.il, oggi) >= GIORNI_FOLLOWUP;
     })
     .sort((a, b) => storiaContatti(a).ultimo!.il.localeCompare(storiaContatti(b).ultimo!.il));

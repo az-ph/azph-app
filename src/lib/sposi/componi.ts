@@ -44,7 +44,7 @@ const MARCHIO_PUBBLICO = ["nome", "titolare", "firma", "motto", "logo_url", "cop
 export type Marchio = Partial<Record<(typeof MARCHIO_PUBBLICO)[number], string | string[]>>;
 
 export function modoDaStato(stato: string): Modo {
-  if (stato === "qte_to_contact" || stato === "qte_quote") return "preventivo";
+  if (stato.startsWith("qte_")) return "preventivo";
   if (stato.startsWith("wdg_")) return "sposi";
   if (stato === "clo_completed") return "chiuso";
   return "non_disponibile";

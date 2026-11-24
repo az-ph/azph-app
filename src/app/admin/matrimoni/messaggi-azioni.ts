@@ -27,7 +27,7 @@ async function segnaPreventivoInviato(mid: string, chiave: ChiaveMessaggio) {
   const { data: p } = await supabase.from("preventivo").select("id").eq("matrimonio_id", mid).is("confermato_il", null)
     .order("versione", { ascending: false }).limit(1).maybeSingle();
   if (p) await supabase.from("preventivo").update({ inviato_il: new Date().toISOString() }).eq("id", p.id);
-  const { data: passato } = await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", mid).eq("stato", "qte_to_contact").select("id");
+  const { data: passato } = await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", mid).in("stato", ["qte_to_contact", "qte_contatto"]).select("id");
   if (passato?.length) {
     const h = await headers();
     await sincronizzaMatrimonio(supabase, mid, process.env.URL || `https://${h.get("host") ?? ""}`);
@@ -109,12 +109,13 @@ export async function registraContatto(_: Esito, fd: FormData): Promise<Esito> {
   if (error) return { errore: error.message };
   // Un invio segnato a mano porta lo stato da Da contattare a Preventivo, come quello dall'app
   if (d.tipo === "invio") {
-    const { data: passato } = await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", d.matrimonio_id).eq("stato", "qte_to_contact").select("id");
+    const { data: passato } = await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", d.matrimonio_id).in("stato", ["qte_to_contact", "qte_contatto"]).select("id");
     if (passato?.length) {
       const h = await headers();
       await sincronizzaMatrimonio(supabase, d.matrimonio_id, process.env.URL || `https://${h.get("host") ?? ""}`);
     }
   }
+  if (d.tipo === "follow_up") await supabase.from("matrimonio").update({ stato: "qte_contatto" }).eq("id", d.matrimonio_id).eq("stato", "qte_to_contact");
   revalidatePath(`/admin/matrimoni/${d.matrimonio_id}`);
   revalidatePath("/admin");
   return { ok: true };

@@ -481,7 +481,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
       errore: x.stato === "errore" ? (x.errore || true) : null,
     })),
     ...(contatti.data ?? []).map((x) => ({
-      il: x.avvenuto_il, cosa: x.tipo === "invio" ? "Invio del preventivo" : "Follow up", come: CANALE_CONTATTO[x.canale] ?? x.canale,
+      il: x.avvenuto_il, cosa: x.tipo === "invio" ? "Invio del preventivo" : "Contatto", come: CANALE_CONTATTO[x.canale] ?? x.canale,
       nota: x.nota, prossimo: x.prossimo_il, id: x.id,
     })),
   ].sort((a, b) => b.il.localeCompare(a.il));
@@ -495,8 +495,8 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
             <input type="hidden" name="matrimonio_id" value={mat.id} />
             <div className="grid sm:grid-cols-2 gap-4">
               <Campo etichetta="Cosa">
-                <select name="tipo" className={inp} defaultValue={prev?.inviato_il ? "follow_up" : "invio"}>
-                  <option value="follow_up">Follow up</option><option value="invio">Invio del preventivo</option>
+                <select name="tipo" className={inp} defaultValue="follow_up">
+                  <option value="follow_up">Contatto o follow up</option><option value="invio">Invio del preventivo</option>
                 </select>
               </Campo>
               <Campo etichetta="Come">
