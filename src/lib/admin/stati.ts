@@ -1,6 +1,7 @@
 /** Stati del Matrimonio con le etichette dell'area admin, nell'ordine del flusso. */
 export const STATI: { valore: string; etichetta: string }[] = [
   { valore: "qte_to_contact", etichetta: "Da contattare" },
+  { valore: "qte_contatto", etichetta: "Primo contatto" },
   { valore: "qte_quote", etichetta: "Preventivo" },
   { valore: "wdg_confermato", etichetta: "Confermato" },
   { valore: "wdg_lightroom", etichetta: "Lightroom" },

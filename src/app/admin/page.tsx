@@ -86,11 +86,18 @@ export default async function Oggi() {
         </Sezione>
 
         <Sezione titolo="Preventivi da fare" vuoto="Nessun preventivo da preparare o da inviare.">
-          {f.daInviare.map((m) => (
-            <Riga key={m.id} href={scheda(m, m.preventivo ? "messaggi" : "preventivo")} nomi={m.nomi}
-              dettaglio={`${m.preventivo ? "Da inviare" : "Da preparare"} · ${m.codice}${m.data ? ` · Matrimonio il ${data(m.data)}` : ""}`}
-              destra={<PillStato stato={m.stato} />} />
-          ))}
+          {f.daInviare.map((m) => {
+            const st = storiaContatti(m);
+            const cosa = m.stato === "qte_to_contact" ? "Da contattare"
+              : m.stato === "qte_contatto" ? (st.ultimo ? `Ultimo contatto il ${data(st.ultimo.il)}` : "Primo contatto")
+              : m.preventivo ? "Da inviare" : "Da preparare";
+            const risentire = st.prossimo ? (st.prossimo <= oggi ? " · da risentire" : ` · da risentire dal ${data(st.prossimo)}`) : "";
+            return (
+              <Riga key={m.id} href={scheda(m, m.stato === "qte_quote" && !m.preventivo ? "preventivo" : "messaggi")} nomi={m.nomi}
+                dettaglio={`${cosa}${risentire} · ${m.codice}${m.data ? ` · Matrimonio il ${data(m.data)}` : ""}`}
+                destra={<PillStato stato={m.stato} />} />
+            );
+          })}
         </Sezione>
 
         <Sezione titolo="Follow up" vuoto="Nessun preventivo da risentire.">

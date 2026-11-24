@@ -10,6 +10,7 @@ export type VoceElenco = {
 export const FILTRI_STATO = [
   { k: "tutti", t: "Tutti", stati: null },
   { k: "contattare", t: "Da contattare", stati: ["qte_to_contact"] },
+  { k: "contatto", t: "Primo contatto", stati: ["qte_contatto"] },
   { k: "preventivo", t: "Preventivo", stati: ["qte_quote"] },
   { k: "confermato", t: "Confermato", stati: ["wdg_confermato"] },
   { k: "lightroom", t: "Lightroom", stati: ["wdg_lightroom"] },

@@ -122,3 +122,6 @@
 .fede[data-tema="scuro"] .f-stato[data-stato="wdg_album_todo"], .fede[data-tema="scuro"] .f-stato[data-stato="wdg_album"] { --c: #cfa8f2; --f: rgb(180 130 240 / .15); }
 .fede[data-tema="scuro"] .f-stato[data-stato="clo_completed"] { --c: #aebaa5; --f: rgb(156 175 136 / .12); }
 .fede[data-tema="scuro"] .f-stato[data-stato="clo_lost"], .fede[data-tema="scuro"] .f-stato[data-stato="clo_no_answer"] { --c: #d9a3a3; --f: rgb(220 130 130 / .13); }
+
+.fede .f-stato[data-stato="qte_contatto"] { --c: #8a5a00; --f: #fbe9c6; }
+.fede[data-tema="scuro"] .f-stato[data-stato="qte_contatto"] { --c: #f0c98a; --f: rgb(240 190 110 / .13); }

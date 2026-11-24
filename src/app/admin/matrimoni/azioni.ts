@@ -146,7 +146,7 @@ export async function segnaInviato(fd: FormData) {
   const mid = z.string().uuid().parse(fd.get("matrimonio_id"));
   const supabase = await supabaseSessione();
   await supabase.from("preventivo").update({ inviato_il: new Date().toISOString() }).eq("id", id);
-  await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", mid).eq("stato", "qte_to_contact");
+  await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", mid).in("stato", ["qte_to_contact", "qte_contatto"]);
   await sincronizzaMatrimonio(supabase, mid, await baseUrl());
   revalidatePath(`/admin/matrimoni/${mid}`);
 }
