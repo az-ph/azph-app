@@ -6,9 +6,11 @@ import { GIORNI_FOLLOWUP, GIORNI_KICKOFF, GIORNI_PROSSIMI, cosaFare, giorniTra, 
 import { salvaKickoff } from "./matrimoni/azioni";
 import { Modulo } from "./matrimoni/modulo";
 import { Kpi, PillStato, Testata } from "./ui";
+import { faseAlbum, type RigaAlbum } from "@/lib/sposi/album";
 
 const APERTI = STATI.map((s) => s.valore).filter((v) => v.startsWith("qte") || v.startsWith("wdg"));
 const NOME_RATA = { acconto: "Acconto", saldo: "Saldo", album: "Album" } as const;
+const FASE_MIA = ["selezione", "modifiche"];
 const CANALE: Record<string, string> = { mail: "mail", whatsapp: "WhatsApp", telefono: "telefono", persona: "di persona", altro: "altro" };
 
 export default async function Oggi() {
@@ -19,12 +21,14 @@ export default async function Oggi() {
   if (error) return <p className="text-errore">Il database non risponde: {error.message}</p>;
   const ids = (righe ?? []).map((m) => m.id);
   const idsPreventivi = (righe ?? []).filter((m) => m.stato.startsWith("qte")).map((m) => m.id);
-  const [importi, incassi, aperture, contatti, invii] = await Promise.all([
+  const idsAlbum = (righe ?? []).filter((m) => m.stato === "wdg_album_todo" || m.stato === "wdg_album").map((m) => m.id);
+  const [importi, incassi, aperture, contatti, invii, album] = await Promise.all([
     supabase.from("importo").select("matrimonio_id, voce, importo").in("matrimonio_id", ids),
     supabase.from("pagamento").select("matrimonio_id, tipo, importo, pagato_il").in("matrimonio_id", ids),
     supabase.from("evento_pagina").select("matrimonio_id, avvenuto_il").eq("tipo", "apertura").in("matrimonio_id", idsPreventivi),
     supabase.from("contatto").select("matrimonio_id, tipo, canale, avvenuto_il, prossimo_il").in("matrimonio_id", idsPreventivi),
     supabase.from("invio").select("matrimonio_id, modello, canale, inviato_il").eq("stato", "inviato").in("modello", ["preventivo", "aggiornato", "duo", "follow_up"]).in("matrimonio_id", idsPreventivi),
+    supabase.from("album").select("matrimonio_id, tipo, selezione_il, copertina, copertina_nota, note_sposi, anteprima_path, anteprima_nome, anteprima_il, approvato_il, modifiche_il, note_modifiche").in("matrimonio_id", idsAlbum),
   ]);
 
   const elenco: MatrimonioOggi[] = (righe ?? []).map((m) => {
@@ -48,6 +52,11 @@ export default async function Oggi() {
   const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
   const f = cosaFare(elenco, oggi);
   const daIncassare = f.pagamenti.reduce((t, p) => t + p.manca, 0);
+  // Album: chi aspetta qualcosa da me (impaginare, nuova versione) e chi aspetta gli Sposi
+  const albumDaSeguire = elenco.filter((m) => idsAlbum.includes(m.id)).map((m) => {
+    const a = (album.data ?? []).find((x) => x.matrimonio_id === m.id) as RigaAlbum | undefined;
+    return { m, a, fase: faseAlbum(m.stato, a ?? null) };
+  }).sort((x, y) => Number(FASE_MIA.includes(y.fase ?? "")) - Number(FASE_MIA.includes(x.fase ?? "")));
   const scheda = (m: MatrimonioOggi, tab?: string) => `/admin/matrimoni/${m.id}${tab ? `?tab=${tab}` : ""}`;
   const ora = Number(new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
 
@@ -114,6 +123,17 @@ export default async function Oggi() {
                 destra={<span className="text-xs text-avviso whitespace-nowrap">{st.prossimo ? `da risentire dal ${data(st.prossimo)}` : `da ${giorniTra(st.ultimo!.il, oggi)} gg`}</span>} />
             );
           })}
+        </Sezione>
+
+        <Sezione titolo="Album" vuoto="Nessun album in corso.">
+          {albumDaSeguire.map(({ m, a, fase }) => (
+            <Riga key={m.id} href={scheda(m, "album")} nomi={m.nomi}
+              dettaglio={fase === "selezione" ? `selezione ricevuta il ${data(a?.selezione_il ?? null)}`
+                : fase === "modifiche" ? `modifiche chieste il ${data(a?.modifiche_il ?? null)}`
+                : fase === "anteprima" ? `anteprima del ${data(a?.anteprima_il ?? null)}` : "istruzioni inviate"}
+              destra={<span className={`text-xs whitespace-nowrap ${FASE_MIA.includes(fase ?? "") ? "text-avviso" : "text-tenue"}`}>
+                {fase === "selezione" ? "da impaginare" : fase === "modifiche" ? "nuova versione" : "attesa Sposi"}</span>} />
+          ))}
         </Sezione>
 
         <Sezione titolo="Prossimi Matrimoni" vuoto={`Nessun Matrimonio nei prossimi ${GIORNI_PROSSIMI} giorni.`}>

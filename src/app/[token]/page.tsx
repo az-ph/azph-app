@@ -10,6 +10,7 @@ import { data, ora } from "@/lib/formato";
 import { Paragrafi, Evidenzia, Contratto, Euro, euroTesto } from "./testo";
 import { Preventivo } from "./preventivo";
 import { Piede } from "./piede";
+import { SezioneAlbum } from "./album";
 import { DatiSposi } from "./indirizzi";
 
 export const dynamic = "force-dynamic";
@@ -194,6 +195,7 @@ export default async function PaginaSposi({ params, searchParams }: {
         </div></section>
       )}
 
+      {p.album && <SezioneAlbum token={token} a={p.album} galleria={p.matrimonio.galleriaSposi} solaLettura={p.solaLettura} />}
       {(p.modo === "sposi" || p.modo === "chiuso") && <AreaSposi p={p} />}
       {(p.modo === "sposi" || p.modo === "chiuso") && (
         <DatiSposi token={token} modificabile={p.modo === "sposi"} sposi={p.sposi} />

@@ -17,6 +17,11 @@ import { MESSAGGI, messaggioSuggerito, preparaMessaggi } from "@/lib/admin/messa
 import { aggiornaContatto, eliminaContatto, registraContatto } from "../messaggi-azioni";
 import { stileDaColori } from "@/lib/mail/testo";
 import { Campo, Riquadro, Spunta, inp } from "../campi";
+import { supabaseServizio } from "@/lib/supabase/server";
+import { BUCKET_ALBUM } from "@/lib/sposi/dati";
+import { faseAlbum, tipoAlbum, testoCopertina, type BloccoAlbum, type RigaAlbum } from "@/lib/sposi/album";
+import { salvaAlbum } from "../album-azioni";
+import { CaricaAnteprima } from "../carica-anteprima";
 import { Kpi, PillStato, Testata, giorniDa } from "../../ui";
 
 const SCHEDE = [
@@ -24,6 +29,7 @@ const SCHEDE = [
   { k: "preventivo", t: "Preventivo" },
   { k: "timeline", t: "Timeline" },
   { k: "pagamenti", t: "Pagamenti" },
+  { k: "album", t: "Album" },
   { k: "messaggi", t: "Messaggi" },
   { k: "attivita", t: "Attività" },
 ] as const;
@@ -37,7 +43,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
   const supabase = await supabaseSessione();
 
   const [m, sposi, prev, link, listino, location, videomaker, timeline, pagamenti, importi, eventi, fontiUsate, imp] = await Promise.all([
-    supabase.from("matrimonio").select("id, codice_id, stato, fonte, kickoff_il, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, pagina_congiunta, videomaker_id, esempio").eq("id", id).maybeSingle(),
+    supabase.from("matrimonio").select("id, codice_id, stato, fonte, kickoff_il, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, link_upyourshoot, pagina_congiunta, videomaker_id, esempio").eq("id", id).maybeSingle(),
     supabase.from("sposo").select("ordine, nome, telefono, email, codice_fiscale, indirizzo, indirizzo_preparativi, consenso_promo").eq("matrimonio_id", id).order("ordine"),
     supabase.from("preventivo").select("id, versione, opzioni, prezzi_speciali, preselezione, scelte, totale, inviato_il, confermato_il, righe_confermate, note_cliente").eq("matrimonio_id", id).order("versione", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("link_sposi").select("token").eq("matrimonio_id", id).is("revocato_il", null).order("creato_il", { ascending: false }).limit(1).maybeSingle(),
@@ -159,6 +165,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
               <div className="grid gap-4">
                 <Campo etichetta="Gallerie (una per riga: Titolo | url)"><textarea name="galleria_url" rows={2} defaultValue={mat.galleria_url ?? ""} className={inp} /></Campo>
                 <Campo etichetta="Copertina (url immagine)"><input name="copertina_url" defaultValue={mat.copertina_url ?? ""} className={inp} /></Campo>
+                <Campo etichetta="Galleria UpYourShoot degli Sposi (dopo la consegna)"><input name="link_upyourshoot" type="url" defaultValue={mat.link_upyourshoot ?? ""} className={inp} /></Campo>
               </div>
             </Riquadro>
             <Riquadro titolo="Note private" azione={<span className="text-xs text-tenue">mai visibili agli Sposi</span>}>
@@ -174,6 +181,10 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
 
       {tab === "pagamenti" && (
         <SchedaPagamenti mid={mat.id} dataMatrimonio={mat.data_inizio} importi={importi.data ?? []} incassi={pagamenti.data ?? []} />
+      )}
+
+      {tab === "album" && (
+        <SchedaAlbum mid={mat.id} stato={mat.stato} scelte={prev.data?.scelte ?? []} importi={importi.data ?? []} />
       )}
 
       {tab === "messaggi" && (
@@ -466,7 +477,7 @@ function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
 }
 
 async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlSposi }: {
-  mat: { id: string; data_inizio: string | null; formula_id: string | null; pagina_congiunta: boolean; videomaker_id: string | null };
+  mat: { id: string; data_inizio: string | null; formula_id: string | null; pagina_congiunta: boolean; videomaker_id: string | null; link_upyourshoot: string | null; stato: string };
   sposi: { ordine: number; nome: string | null; email: string | null; telefono: string | null }[];
   prev: { versione: number; opzioni: unknown; inviato_il: string | null; confermato_il: string | null } | null;
   listinoRighe: RigaListino[]; videomaker: { id: string; nome: string; codice: string | null; telefono: string | null }[]; urlSposi: string | null;
@@ -500,8 +511,9 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
     DATA_LUNGA: dataEstesa(mat.data_inizio).replace(/^\S+ /, ""),
     LINK: urlSposi, LINK_TIMELINE: `${urlSposi}#azp-timeline`, VERSIONE: prev ? `v${String(prev.versione).padStart(2, "0")}` : "",
     URL_RECENSIONI: imp.data?.url_recensioni ?? "", VIDEOMAKER: vm?.nome ?? "", VIDEOMAKER_TELEFONO: vm?.telefono ?? "",
+    LINK_ALBUM: `${urlSposi}#azp-anteprima`,
   };
-  const pronti = preparaMessaggi(modelli.data ?? [], valori, { omaggi, video: !!opz.proponi_video && !mat.pagina_congiunta, firma: firma.testo, titoli: { duo: marchio.nome_proposta_congiunta } });
+  const pronti = preparaMessaggi(modelli.data ?? [], valori, { omaggi, video: !!opz.proponi_video && !mat.pagina_congiunta, firma: firma.testo, titoli: { duo: marchio.nome_proposta_congiunta }, galleria: mat.link_upyourshoot ?? "" });
   const persone = [...sposi].sort((a, b) => a.ordine - b.ordine).map((x) => ({ nome: x.nome ?? "", email: x.email?.trim() ?? "", telefono: x.telefono ?? "" }));
   const titolo = Object.fromEntries([...MESSAGGI.map((m) => [m.chiave, m.chiave === "duo" && marchio.nome_proposta_congiunta ? marchio.nome_proposta_congiunta : m.titolo]), ["conferma_sposi", "Conferma"]]);
   type Voce = { il: string; cosa: string; come: string; nota?: string | null; prossimo?: string | null; id?: string; errore?: string | true | null; tipo?: string; canale?: string; esito?: string | null };
@@ -518,7 +530,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
   return (
     <div className="flex flex-col gap-4">
     <Messaggi mid={mat.id} pronti={pronti} persone={persone} firma={firma} stile={stileDaColori(imp.data?.colori as Record<string, string> | null)}
-      suggerito={messaggioSuggerito({ confermato: !!prev?.confermato_il, inviato: !!prev?.inviato_il, congiunta: mat.pagina_congiunta })} />
+      suggerito={messaggioSuggerito({ confermato: !!prev?.confermato_il, inviato: !!prev?.inviato_il, congiunta: mat.pagina_congiunta, stato: mat.stato })} />
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         <Riquadro titolo="Segna un contatto" azione={<span className="text-xs text-tenue">telefonate, WhatsApp, incontri, invii fuori dall&apos;app</span>}>
           <Modulo azione={registraContatto} etichetta="Segna">
@@ -590,6 +602,85 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
 const ESITO_CONTATTO: Record<string, string> = { nessuna_risposta: "Nessuna risposta", positivo: "Interessati", negativo: "Riscontro negativo (chiude come Perso)" };
 
 const CANALE_CONTATTO: Record<string, string> = { whatsapp: "WhatsApp", telefono: "Telefono", mail: "Mail", persona: "Di persona", altro: "Altro" };
+
+const FASE_ALBUM: Record<string, string> = {
+  istruzioni: "In attesa della selezione degli Sposi",
+  selezione: "Selezione ricevuta: da impaginare",
+  anteprima: "Anteprima inviata: in attesa di risposta",
+  modifiche: "Modifiche richieste: da caricare la nuova versione",
+  approvato: "Approvato: da mandare in stampa",
+};
+
+async function SchedaAlbum({ mid, stato, scelte, importi }: { mid: string; stato: string; scelte: string[]; importi: { voce: string; importo: number }[] }) {
+  // La scheda è già passata dalla policy admin (il Matrimonio è stato letto con la sessione).
+  const supabase = await supabaseSessione();
+  const [alb, blk] = await Promise.all([
+    supabase.from("album").select("tipo, selezione_il, copertina, copertina_nota, note_sposi, anteprima_path, anteprima_nome, anteprima_il, approvato_il, modifiche_il, note_modifiche").eq("matrimonio_id", mid).maybeSingle(),
+    supabase.from("blocco_pagina").select("dati").eq("chiave", "album-sposi").maybeSingle(),
+  ]);
+  const a = alb.data as RigaAlbum | null;
+  const blocco = (blk.data?.dati ?? null) as BloccoAlbum | null;
+  const imp = Object.fromEntries(importi.map((x) => [x.voce, x.importo]));
+  const tipo = tipoAlbum({ tipo: a?.tipo, scelte, importoAlbum: imp.album ?? 0, blocco });
+  const fase = faseAlbum(stato, a);
+  let url = "";
+  if (a?.anteprima_path?.startsWith(`${mid}/`)) {
+    const { data: f } = await supabaseServizio().storage.from(BUCKET_ALBUM).createSignedUrl(a.anteprima_path, 60 * 30);
+    url = f?.signedUrl ?? "";
+  }
+  const copertine = [...(blocco?.copertine?.standard ?? []), ...(blocco?.copertine?.premium ?? [])];
+  const inPercorso = stato === "wdg_album_todo" || stato === "wdg_album";
+  return (
+    <div className="flex flex-col gap-4">
+      {!blocco && <Riquadro><p className="text-sm text-errore">Mancano i testi dell&apos;album: premi &quot;Aggiorna i testi&quot; in Importa.</p></Riquadro>}
+      <div className="grid lg:grid-cols-2 gap-4 items-start">
+        <Riquadro titolo="A che punto siamo">
+          <ul className="f-righe text-sm">
+            <li><span className="text-tenue">Fase</span><span className="text-right">{fase ? FASE_ALBUM[fase] : inPercorso ? "—" : "La sezione album compare nella pagina in \"Album da fare\" e \"Album\""}</span></li>
+            <li><span className="text-tenue">Album</span><span className="text-right">{tipo === "standard" ? "Standard" : "Premium"}{imp.album ? ` · ${euro(imp.album)}` : " · nessun importo"}{imp.album_genitori ? ` + genitori ${euro(imp.album_genitori)}` : ""}</span></li>
+            <li><span className="text-tenue">Selezione</span><span className="text-right">{a?.selezione_il ? `ricevuta il ${data(a.selezione_il)}` : "non ancora"}</span></li>
+            <li><span className="text-tenue">Copertina</span><span className="text-right">{a ? testoCopertina(blocco, a) || "—" : "—"}</span></li>
+            {a?.note_sposi && <li><span className="text-tenue">Note degli Sposi</span><span className="whitespace-pre-line text-right">{a.note_sposi}</span></li>}
+            {a?.approvato_il && <li><span className="text-tenue">Approvato</span><span className="text-right">il {data(a.approvato_il)}</span></li>}
+          </ul>
+        </Riquadro>
+        <Riquadro titolo="Anteprima dell'impaginazione">
+          {a?.anteprima_path ? (
+            <p className="text-sm mb-4">
+              {url ? <a href={url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">{a.anteprima_nome || "Apri l'anteprima"} ↗</a> : "Anteprima non leggibile ora"}
+              <span className="text-tenue"> · caricata il {data(a.anteprima_il)}</span>
+            </p>
+          ) : <p className="text-sm text-tenue mb-4">Nessuna anteprima caricata.</p>}
+          <CaricaAnteprima mid={mid} nuova={!!a?.anteprima_path} />
+        </Riquadro>
+      </div>
+      {a?.note_modifiche && (
+        <Riquadro titolo="Modifiche e note degli Sposi">
+          <p className="text-sm whitespace-pre-line">{a.note_modifiche}</p>
+        </Riquadro>
+      )}
+      <Riquadro titolo="Dati dell'album" azione={<span className="text-xs text-tenue">per correggere o inserire al posto degli Sposi</span>}>
+        <Modulo azione={salvaAlbum} etichetta="Salva">
+          <input type="hidden" name="matrimonio_id" value={mid} />
+          <div className="grid sm:grid-cols-3 gap-4">
+            <Campo etichetta="Tipo">
+              <select name="tipo" defaultValue={a?.tipo ?? ""} className={inp}>
+                <option value="">Dal preventivo ({tipoAlbum({ tipo: null, scelte, importoAlbum: imp.album ?? 0, blocco }) === "standard" ? "Standard" : "Premium"})</option>
+                <option value="standard">Standard</option><option value="premium">Premium</option>
+              </select>
+            </Campo>
+            <Campo etichetta="Copertina">
+              <select name="copertina" defaultValue={a?.copertina ?? ""} className={inp}>
+                <option value="">—</option>{copertine.map((c) => <option key={c.valore} value={c.valore}>{c.etichetta}</option>)}
+              </select>
+            </Campo>
+            <Campo etichetta="Indicazione (foto, colore…)"><input name="copertina_nota" defaultValue={a?.copertina_nota ?? ""} className={inp} /></Campo>
+          </div>
+        </Modulo>
+      </Riquadro>
+    </div>
+  );
+}
 
 function dataOra(t: string) {
   const p = Object.fromEntries(new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })

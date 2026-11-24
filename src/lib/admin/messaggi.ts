@@ -8,6 +8,8 @@ export const MESSAGGI = [
   { chiave: "duo", titolo: "Proposta foto + video", segnaInviato: true },
   { chiave: "sposi", titolo: "Area Sposi", segnaInviato: false },
   { chiave: "timeline", titolo: "Timeline aggiornata", segnaInviato: false },
+  { chiave: "album", titolo: "Album", segnaInviato: false },
+  { chiave: "album_pagina", titolo: "Album + pagina", segnaInviato: false },
 ] as const;
 export type ChiaveMessaggio = (typeof MESSAGGI)[number]["chiave"];
 export const CHIAVI_MESSAGGIO = MESSAGGI.map((m) => m.chiave) as [ChiaveMessaggio, ...ChiaveMessaggio[]];
@@ -24,7 +26,7 @@ export function elenco(voci: string[]): string {
  * Testi pronti per ogni messaggio. Restano {FIRMA} nella mail (nome breve nel testo, firma completa in coda)
  * e {NOME} su WhatsApp (il nome di chi riceve, scelto al momento dell'invio).
  */
-export function preparaMessaggi(modelli: Modello[], valori: Record<string, string>, extra: { omaggi: string[]; video: boolean; firma: string; titoli?: Partial<Record<ChiaveMessaggio, string>> }): Pronto[] {
+export function preparaMessaggi(modelli: Modello[], valori: Record<string, string>, extra: { omaggi: string[]; video: boolean; firma: string; titoli?: Partial<Record<ChiaveMessaggio, string>>; galleria?: string }): Pronto[] {
   const trova = (k: string) => modelli.find((m) => m.chiave === k);
   const v: Record<string, string> = { ...valori };
   delete v.FIRMA; delete v.NOME;
@@ -32,6 +34,8 @@ export function preparaMessaggi(modelli: Modello[], valori: Record<string, strin
   v.OMAGGI = extra.omaggi.length && omaggi ? riempi(omaggi, { ELENCO: elenco(extra.omaggi) }) : "";
   const video = trova("preventivo_video")?.corpo_mail;
   v.VIDEO = extra.video && video ? riempi(video, v) + "\n" : "";
+  const galleria = trova("album_galleria")?.corpo_mail;
+  v.GALLERIA = extra.galleria && galleria ? riempi(galleria, { URL: extra.galleria }) : "";
 
   return MESSAGGI.map(({ chiave, titolo: base }) => {
     const titolo = extra.titoli?.[chiave] || base;
@@ -44,7 +48,8 @@ export function preparaMessaggi(modelli: Modello[], valori: Record<string, strin
 }
 
 /** Messaggio proposto all'apertura della scheda, in base a dove siamo con il preventivo. */
-export function messaggioSuggerito(p: { confermato: boolean; inviato: boolean; congiunta: boolean }): ChiaveMessaggio {
+export function messaggioSuggerito(p: { confermato: boolean; inviato: boolean; congiunta: boolean; stato?: string }): ChiaveMessaggio {
+  if (p.stato === "wdg_album_todo") return "album";
   if (p.confermato) return "sposi";
   if (p.inviato) return "follow_up";
   return p.congiunta ? "duo" : "preventivo";

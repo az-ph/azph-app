@@ -3,6 +3,8 @@
  * Funzione pura (testabile): decide il modo della pagina e filtra cosa può arrivare al browser.
  */
 
+import { copertineAlbum, faseAlbum, passiAlbum, selezioneModificabile, testoCopertina, tipoAlbum, type BloccoAlbum, type RigaAlbum } from "./album";
+
 export type Modo = "preventivo" | "sposi" | "chiuso" | "non_disponibile";
 
 export interface RigheGrezze {
@@ -28,6 +30,7 @@ export interface RigheGrezze {
   blocchi: { chiave: string; ordine: number; quando: string; dati: unknown }[];
   impostazioni: { marchio: unknown; zone: string[]; url_recensioni: string | null; condizioni_pagamento: string | null } | null;
   contratto: { id: string; testo: string } | null;
+  album?: RigaAlbum | null;
 }
 
 export interface Blocco {
@@ -114,6 +117,36 @@ export function componiPagina(r: RigheGrezze) {
     zone: r.impostazioni?.zone ?? [],
     urlRecensioni: modo === "preventivo" && /^https:\/\//.test(r.impostazioni?.url_recensioni ?? "") ? r.impostazioni!.url_recensioni! : null,
     contratto: r.contratto,
+    album: componiAlbum(r, modo),
+  };
+}
+
+/** Sezione album: solo nell'area Sposi e solo nelle fasi previste. L'indirizzo dell'anteprima si aggiunge sul server. */
+function componiAlbum(r: RigheGrezze, modo: Modo) {
+  if (modo !== "sposi" && modo !== "chiuso") return null;
+  const a = r.album ?? null;
+  const fase = faseAlbum(r.matrimonio.stato, a);
+  if (!fase) return null;
+  const grezzo = r.blocchi.find((b) => b.chiave === "album-sposi");
+  const blocco = (grezzo?.dati ?? null) as BloccoAlbum | null;
+  const imp = Object.fromEntries(r.importi.map((x) => [x.voce, x.importo]));
+  const tipo = tipoAlbum({ tipo: a?.tipo, scelte: r.preventivo?.scelte ?? [], importoAlbum: imp.album ?? 0, blocco });
+  const note = [(imp.album_genitori ?? 0) > 0 ? blocco?.genitori : "", blocco?.studio].filter((x): x is string => !!x);
+  return {
+    fase, tipo,
+    sopratitolo: blocco?.sopratitolo ?? "", titolo: blocco?.titolo ?? "Il vostro Album", intro: blocco?.intro ?? "",
+    passi: passiAlbum(blocco, tipo), note,
+    copertine: copertineAlbum(blocco, tipo),
+    modificabile: selezioneModificabile(r.matrimonio.stato, a),
+    selezioneIl: a?.selezione_il ?? null,
+    copertina: a?.copertina ?? "", copertinaNota: a?.copertina_nota ?? "", noteSposi: a?.note_sposi ?? "",
+    copertinaTesto: a ? testoCopertina(blocco, a) : "",
+    anteprimaIl: a?.anteprima_path ? a.anteprima_il : null,
+    anteprimaPdf: !!a?.anteprima_path?.endsWith(".pdf"),
+    approvatoIl: a?.approvato_il ?? null,
+    modificheIl: a?.modifiche_il ?? null,
+    /** Riempito dal server con un link temporaneo. */
+    anteprimaUrl: "" as string,
   };
 }
 

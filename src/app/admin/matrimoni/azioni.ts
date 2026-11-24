@@ -63,6 +63,7 @@ const Dati = z.object({
   fonte: z.string().trim().max(20).regex(/^[\w .-]*$/).optional().default(""),
   preparativi: spunta, pagina_congiunta: spunta, esempio: spunta, note_private: testo(4000),
   galleria_url: testo(2000), copertina_url: testo(500),
+  link_upyourshoot: z.string().trim().max(500).regex(/^(https:\/\/\S+)?$/, "Galleria UpYourShoot: serve un indirizzo https").optional().default(""),
   kickoff_il: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/).or(z.literal("")).optional().default(""),
 });
 const SposoForm = z.object({
@@ -85,7 +86,7 @@ export async function salvaDati(_: Esito, fd: FormData): Promise<Esito> {
     ora_inizio: v.ora_inizio || null, ora_fine: v.ora_fine || null, location_id: v.location_id || null,
     videomaker_id: v.videomaker_id || null, fonte: v.fonte || null, preparativi: v.preparativi, esempio: v.esempio,
     pagina_congiunta: v.pagina_congiunta, note_private: v.note_private || null,
-    galleria_url: v.galleria_url || null, copertina_url: v.copertina_url || null, kickoff_il: v.kickoff_il ? istanteDaRoma(v.kickoff_il) : null,
+    galleria_url: v.galleria_url || null, copertina_url: v.copertina_url || null, link_upyourshoot: v.link_upyourshoot || null, kickoff_il: v.kickoff_il ? istanteDaRoma(v.kickoff_il) : null,
   }).eq("id", v.id);
   if (error) return { errore: error.message };
 

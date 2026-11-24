@@ -11,6 +11,7 @@ import { mailConferma } from "@/lib/mail/conferma";
 import { sincronizzaMatrimonio } from "@/lib/admin/sincronizza-calendario";
 import { nomiSposi } from "@/lib/sposi/componi";
 import { euro } from "@/lib/formato";
+import { notificaTitolare } from "@/lib/mail/notifica";
 
 const Sposo = z.object({
   nome: z.string().trim().min(2).max(120),
@@ -184,6 +185,106 @@ export async function salvaIndirizzi(token: string, input: unknown): Promise<{ o
   if (dati.data.sposi.some((s) => s.indirizzo_preparativi)) {
     await db.from("matrimonio").update({ preparativi: true }).eq("id", mid);
   }
+  revalidatePath(`/${token}`);
+  return { ok: true };
+}
+
+// ---------- Album ----------
+
+const Selezione = z.object({
+  fatta: z.literal(true),
+  copertina: z.string().regex(/^[a-z0-9_-]{1,40}$/),
+  copertinaNota: z.string().trim().max(500).default(""),
+  note: z.string().trim().max(2000).default(""),
+});
+
+/** Scheda del Matrimonio nell'area admin, per le notifiche al titolare. */
+async function linkScheda(mid: string, tab: string) {
+  const h = await headers();
+  const base = (process.env.URL || `https://${h.get("host") ?? ""}`).replace(/\/$/, "");
+  return `${base}/admin/matrimoni/${mid}?tab=${tab}`;
+}
+
+/** Gli Sposi segnalano la selezione fatta su UpYourShoot e scelgono la copertina. */
+export async function albumSelezione(token: string, input: unknown): Promise<{ ok?: true; errore?: string }> {
+  const mid = await matrimonioDaToken(token);
+  if (!mid) return { errore: "Link non valido." };
+  const d = Selezione.safeParse(input);
+  if (!d.success) {
+    return { errore: d.error.issues.some((i) => i.path[0] === "fatta") ? "Spuntate la casella della selezione fatta." : "Scegliete la copertina." };
+  }
+  const { pagina } = await caricaPagina(mid);
+  const a = pagina.album;
+  if (!a || !a.modificabile) return { errore: "La scelta non è più modificabile da qui: scrivetemi pure." };
+  const cop = a.copertine.find((c) => c.valore === d.data.copertina);
+  if (!cop) return { errore: "Scegliete una delle copertine proposte." };
+  if (cop.nota && !d.data.copertinaNota) return { errore: `Per questa copertina serve un'indicazione: ${cop.nota.toLowerCase()}.` };
+
+  const db = supabaseServizio();
+  const { error } = await db.from("album").upsert({
+    matrimonio_id: mid, tipo: a.tipo, selezione_il: new Date().toISOString(),
+    copertina: cop.valore, copertina_nota: d.data.copertinaNota || null, note_sposi: d.data.note || null,
+  }, { onConflict: "matrimonio_id" });
+  if (error) return { errore: "Salvataggio non riuscito, riprovate tra poco." };
+
+  try {
+    await notificaTitolare({
+      oggetto: `📖 Selezione album ${pagina.nomi} – ${pagina.matrimonio.codice}`,
+      titolo: `${pagina.nomi} hanno fatto la selezione per l'album${a.selezioneIl ? " (scelta aggiornata)" : ""}`,
+      righe: [["Album", a.tipo === "standard" ? "Standard" : "Premium"], ["Copertina", cop.etichetta], ["Indicazione", d.data.copertinaNota]],
+      testo: d.data.note ? `Note: ${d.data.note}` : undefined,
+      link: await linkScheda(mid, "album"),
+    });
+  } catch { console.error("Notifica selezione album: errore imprevisto"); }
+  revalidatePath(`/${token}`);
+  return { ok: true };
+}
+
+const Risposta = z.object({
+  approva: z.boolean(),
+  note: z.string().trim().max(3000).default(""),
+  /** Versione dell'anteprima vista dagli Sposi: se nel frattempo ne è arrivata un'altra, si ricarica. */
+  versione: z.string().max(40),
+});
+
+/** Gli Sposi approvano l'anteprima (stato → Saldo) o chiedono modifiche. */
+export async function albumRisposta(token: string, input: unknown): Promise<{ ok?: true; errore?: string }> {
+  const mid = await matrimonioDaToken(token);
+  if (!mid) return { errore: "Link non valido." };
+  const d = Risposta.safeParse(input);
+  if (!d.success) return { errore: "Richiesta non valida: ricaricate la pagina." };
+  if (!d.data.approva && !d.data.note) return { errore: "Scrivete cosa vorreste cambiare." };
+
+  const { pagina } = await caricaPagina(mid);
+  const a = pagina.album;
+  if (!a || a.fase !== "anteprima" || !a.anteprimaIl) return { errore: "L'anteprima non è più in attesa di risposta: ricaricate la pagina." };
+  if (a.anteprimaIl !== d.data.versione) return { errore: "Nel frattempo ho caricato una nuova versione: ricaricate la pagina." };
+
+  const db = supabaseServizio();
+  const adesso = new Date().toISOString();
+  const { data: prima } = await db.from("album").select("note_modifiche").eq("matrimonio_id", mid).single();
+  const quando = new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date()).replace(/\//g, ".");
+  const storico = d.data.note ? [`${quando} – ${d.data.approva ? "con l'ok" : "modifiche"}: ${d.data.note}`, prima?.note_modifiche].filter(Boolean).join("\n") : prima?.note_modifiche ?? null;
+  const { error } = await db.from("album").update(d.data.approva
+    ? { approvato_il: adesso, note_modifiche: storico }
+    : { modifiche_il: adesso, note_modifiche: storico }).eq("matrimonio_id", mid).eq("anteprima_il", a.anteprimaIl);
+  if (error) return { errore: "Salvataggio non riuscito, riprovate tra poco." };
+
+  let esito = "";
+  if (d.data.approva) {
+    // Dopo l'ok si torna al saldo, come prima: solo se il Matrimonio è ancora nello stato dell'anteprima.
+    const { data: agg } = await db.from("matrimonio").update({ stato: "wdg_invoice" }).eq("id", mid).eq("stato", "wdg_album").select("id");
+    esito = agg?.length ? "Stato passato a Saldo." : "⚠️ Stato non cambiato: controllalo nella scheda.";
+  }
+  try {
+    await notificaTitolare({
+      oggetto: `${d.data.approva ? "✅ Album approvato" : "✏️ Modifiche album"} – ${pagina.nomi}`,
+      titolo: `${pagina.nomi} ${d.data.approva ? "hanno approvato l'impaginazione" : "chiedono modifiche all'impaginazione"}`,
+      righe: [["Matrimonio", pagina.matrimonio.codice], ["Anteprima del", a.anteprimaIl.slice(0, 10).split("-").reverse().join(".")], ["Esito", esito]],
+      testo: d.data.note || undefined,
+      link: await linkScheda(mid, "album"),
+    });
+  } catch { console.error("Notifica risposta album: errore imprevisto"); }
   revalidatePath(`/${token}`);
   return { ok: true };
 }
