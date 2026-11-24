@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { faseAlbum, percorsoAnteprima, selezioneModificabile, testoCopertina, tipoAlbum, type BloccoAlbum, type RigaAlbum } from "./album";
+import { faseAlbum, piuMesi, propostaAperta, percorsoAnteprima, selezioneModificabile, testoCopertina, tipoAlbum, type BloccoAlbum, type RigaAlbum } from "./album";
 
 const blocco: BloccoAlbum = {
   codici: { standard: "alb-std", premium: "alb-prm" }, soglia_standard: 45000,
@@ -53,4 +53,20 @@ describe("testi", () => {
   it("percorso senza dati personali", () => {
     expect(percorsoAnteprima("abc", "pdf", new Date("2026-12-01T10:20:30.123Z"))).toBe("abc/20261201T102030.pdf");
   });
+});
+
+describe("proposta album", () => {
+  const base = { stato: "clo_completed", importoAlbum: 0, scelto: false, consegna: "2026-01-31", dataMatrimonio: "2025-12-01", mesi: 12, oggi: "2026-11-24" };
+  it("entro i mesi dalla consegna, senza album", () => {
+    expect(propostaAperta(base)).toBe(true);
+    expect(propostaAperta({ ...base, oggi: "2027-02-01" })).toBe(false);
+    expect(propostaAperta({ ...base, importoAlbum: 50000 })).toBe(false);
+    expect(propostaAperta({ ...base, stato: "wdg_lightroom" })).toBe(false);
+    expect(propostaAperta({ ...base, mesi: undefined })).toBe(false);
+  });
+  it("senza consegna vale la data del Matrimonio", () => {
+    expect(propostaAperta({ ...base, consegna: null, dataMatrimonio: "2025-06-01" })).toBe(false);
+    expect(propostaAperta({ ...base, consegna: null, dataMatrimonio: "2026-06-01" })).toBe(true);
+  });
+  it("mesi", () => { expect(piuMesi("2026-01-31", 1)).toBe("2026-03-03"); expect(piuMesi("2026-11-24", 12)).toBe("2027-11-24"); });
 });

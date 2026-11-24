@@ -28,7 +28,7 @@ export async function caricaPagina(mid: string): Promise<{
   const db = supabaseServizio();
   const [m, sposi, prev, listino, timeline, importi, pagamenti, blocchi, imp, contratto, album] = await Promise.all([
     db.from("matrimonio").select(
-      "id, codice_id, stato, data_inizio, data_fine, preparativi, galleria_url, copertina_url, link_upyourshoot, pagina_congiunta, " +
+      "id, codice_id, stato, data_inizio, data_fine, preparativi, galleria_url, copertina_url, link_upyourshoot, pagina_congiunta, foto_consegnate_il, " +
       "location:location_id ( nome, comune, provincia, galleria_url, copertina_url ), " +
       "formula:formula_id ( codice ), videomaker:videomaker_id ( codice, nome )",
     ).eq("id", mid).single(),
@@ -45,7 +45,7 @@ export async function caricaPagina(mid: string): Promise<{
     db.from("blocco_pagina").select("chiave, ordine, quando, dati").order("ordine"),
     db.from("impostazioni").select("marchio, zone, url_recensioni, condizioni_pagamento").single(),
     db.from("contratto_versione").select("id, testo").order("valido_dal", { ascending: false }).limit(1).maybeSingle(),
-    db.from("album").select("tipo, selezione_il, copertina, copertina_nota, note_sposi, anteprima_path, anteprima_nome, anteprima_il, approvato_il, modifiche_il, note_modifiche")
+    db.from("album").select("tipo, selezione_il, copertina, copertina_nota, note_sposi, anteprima_path, anteprima_nome, anteprima_il, approvato_il, modifiche_il, note_modifiche, scelto_il, scelta")
       .eq("matrimonio_id", mid).maybeSingle(),
   ]);
   if (m.error || !m.data) throw new Error("Matrimonio non trovato");

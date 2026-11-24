@@ -1,3 +1,5 @@
+import { calcolaOfferta, type Preventivo, type VoceListino, type VoceOfferta } from "@/lib/listino/motore";
+
 /**
  * Percorso dell'album nella pagina Sposi. Funzioni pure (testabili).
  * Testi, copertine e codici del listino arrivano dal blocco "album-sposi" dell'istanza.
@@ -19,9 +21,13 @@ export interface BloccoAlbum {
   codici?: { standard?: string; premium?: string };
   /** Album fino a questo importo (centesimi) = Standard. */
   soglia_standard?: number;
+  /** Proposta dell'album a chi non l'ha preso: testi e mesi dalla consegna delle foto. */
+  proposta?: { sopratitolo?: string; titolo?: string; corpo?: string; mesi?: number; giorni_promemoria?: number };
 }
 
 export interface RigaAlbum {
+  scelto_il?: string | null;
+  scelta?: { voce: string; importo: number }[] | null;
   tipo: TipoAlbum | null;
   selezione_il: string | null;
   copertina: string | null;
@@ -99,3 +105,37 @@ export function percorsoAnteprima(mid: string, estensione: string, adesso = new 
 export const TIPI_ANTEPRIMA: Record<string, string> = {
   "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
 };
+
+/** Stati dopo la consegna delle foto in cui si può ancora proporre l'album. */
+export const STATI_PROPOSTA = ["wdg_invoice", "clo_completed"];
+
+/** "aaaa-mm-gg" + n mesi */
+export function piuMesi(data: string, mesi: number): string {
+  const [a, m, g] = data.slice(0, 10).split("-").map(Number);
+  const d = new Date(Date.UTC(a, m - 1 + mesi, g));
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Sezione "scegliete l'album" nella pagina: dopo la consegna, senza album, entro i mesi previsti.
+ * Senza data di consegna (Matrimoni importati) vale la data del Matrimonio.
+ */
+export function propostaAperta(p: { stato: string; importoAlbum: number; scelto: boolean; consegna: string | null; dataMatrimonio: string | null; mesi: number | undefined; oggi: string }): boolean {
+  if (!STATI_PROPOSTA.includes(p.stato) || p.importoAlbum > 0 || p.scelto) return false;
+  const rif = p.consegna ?? p.dataMatrimonio;
+  if (!rif || !p.mesi) return false;
+  return p.oggi <= piuMesi(rif, p.mesi);
+}
+
+/** Tipo dall'album scelto: codice del listino, altrimenti l'importo. */
+export function tipoDaCodice(codice: string, importo: number, b: BloccoAlbum | null): TipoAlbum {
+  return tipoAlbum({ tipo: null, scelte: [codice], importoAlbum: importo, blocco: b });
+}
+
+/** Album e repliche con i prezzi del preventivo (prezzi speciali compresi), senza le regole della pagina congiunta. */
+export function vociAlbum(listino: VoceListino[], prev: Preventivo | null): VoceOfferta[] {
+  const p: Preventivo = prev ? { ...prev, paginaCongiunta: false } : { opzioni: {}, prezziSpeciali: {} };
+  try {
+    return calcolaOfferta(listino, p).voci.filter((v) => v.categoria === "album" || v.categoria === "replica");
+  } catch { return []; }
+}

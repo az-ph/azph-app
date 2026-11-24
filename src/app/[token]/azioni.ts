@@ -12,6 +12,7 @@ import { sincronizzaMatrimonio } from "@/lib/admin/sincronizza-calendario";
 import { nomiSposi } from "@/lib/sposi/componi";
 import { euro } from "@/lib/formato";
 import { notificaTitolare } from "@/lib/mail/notifica";
+import { STATI_PROPOSTA, tipoDaCodice, vociAlbum, type BloccoAlbum } from "@/lib/sposi/album";
 
 const Sposo = z.object({
   nome: z.string().trim().min(2).max(120),
@@ -285,6 +286,65 @@ export async function albumRisposta(token: string, input: unknown): Promise<{ ok
       link: await linkScheda(mid, "album"),
     });
   } catch { console.error("Notifica risposta album: errore imprevisto"); }
+  revalidatePath(`/${token}`);
+  return { ok: true };
+}
+
+const SceltaAlbum = z.object({
+  album: z.string().max(64),
+  qta: z.record(z.string(), z.number().int().min(0).max(10)).default({}),
+  /** Totale visto dagli Sposi: se nel frattempo i prezzi sono cambiati, si ricarica. */
+  totale: z.number().int().min(0),
+});
+
+/** Album scelto dopo la consegna delle foto: importi, righe del riepilogo e stato "Album da fare". */
+export async function albumScelta(token: string, input: unknown): Promise<{ ok?: true; errore?: string }> {
+  const mid = await matrimonioDaToken(token);
+  if (!mid) return { errore: "Link non valido." };
+  const d = SceltaAlbum.safeParse(input);
+  if (!d.success) return { errore: "Selezionate l'album." };
+
+  const { pagina, calcolo } = await caricaPagina(mid);
+  if (!pagina.propostaAlbum) return { errore: "L'album risulta già definito o non più disponibile da qui: scrivetemi pure." };
+  // Prezzi ricalcolati qui, mai presi dal browser.
+  const voci = vociAlbum(calcolo.listino, calcolo.preventivo);
+  let sel;
+  try {
+    sel = selezione(voci, { extra: [d.data.album], qta: d.data.qta });
+  } catch (e) {
+    return { errore: e instanceof ErroreSelezione ? e.message : "Selezione non valida: ricaricate la pagina." };
+  }
+  const scelto = sel.foto.find((x) => x.categoria === "album");
+  if (!scelto) return { errore: "Selezionate l'album." };
+  const totale = sel.foto.reduce((t, x) => t + x.totale, 0);
+  if (totale !== d.data.totale) return { errore: "I prezzi sono cambiati: ricaricate la pagina." };
+
+  const perVoce: Record<string, number> = {};
+  for (const x of sel.foto) perVoce[x.riepilogo || "album"] = (perVoce[x.riepilogo || "album"] ?? 0) + x.totale;
+  const db = supabaseServizio();
+  const { data: blk } = await db.from("blocco_pagina").select("dati").eq("chiave", "album-sposi").maybeSingle();
+  const tipo = tipoDaCodice(scelto.codice, scelto.totale, (blk?.dati ?? null) as BloccoAlbum | null);
+
+  const { error: e1 } = await db.from("album").upsert({
+    matrimonio_id: mid, tipo, scelto_il: new Date().toISOString(),
+    scelta: sel.foto.map((x) => ({ voce: x.etichetta, importo: x.totale })),
+  }, { onConflict: "matrimonio_id" });
+  if (e1) return { errore: "Salvataggio non riuscito, riprovate tra poco." };
+  const { error: e2 } = await db.from("importo").upsert(
+    Object.entries(perVoce).map(([voce, importo]) => ({ matrimonio_id: mid, voce, importo })), { onConflict: "matrimonio_id,voce" });
+  if (e2) return { errore: "Salvataggio non riuscito, riprovate tra poco." };
+  const { data: agg } = await db.from("matrimonio").update({ stato: "wdg_album_todo" }).eq("id", mid).in("stato", STATI_PROPOSTA).select("id");
+
+  try {
+    await notificaTitolare({
+      oggetto: `📖 Album scelto – ${pagina.nomi}`,
+      titolo: `${pagina.nomi} hanno scelto l'album dalla loro pagina`,
+      righe: [["Matrimonio", pagina.matrimonio.codice], ...sel.foto.map((x): [string, string] => [x.etichetta, euro(x.totale)]),
+        ["Stato", agg?.length ? "passato ad Album da fare: gli Sposi vedono già le istruzioni" : "⚠️ non cambiato: controllalo"]],
+      testo: "Manda la mail con le istruzioni dalla scheda (Messaggi → Album).",
+      link: await linkScheda(mid, "album"),
+    });
+  } catch { console.error("Notifica scelta album: errore imprevisto"); }
   revalidatePath(`/${token}`);
   return { ok: true };
 }

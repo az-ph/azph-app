@@ -22,6 +22,12 @@ const Invio = z.object({
 
 /** Dopo l'invio del preventivo: segnato come inviato, e lo stato passa da "Da contattare" a "Preventivo". */
 async function segnaPreventivoInviato(mid: string, chiave: ChiaveMessaggio) {
+  if (chiave === "album_proposta") {
+    // La proposta dell'album esce dall'elenco di Oggi
+    const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+    await (await supabaseSessione()).from("matrimonio").update({ album_proposto_il: oggi }).eq("id", mid);
+    return;
+  }
   if (!MESSAGGI.find((m) => m.chiave === chiave)?.segnaInviato) return;
   const supabase = await supabaseSessione();
   const { data: p } = await supabase.from("preventivo").select("id").eq("matrimonio_id", mid).is("confermato_il", null)

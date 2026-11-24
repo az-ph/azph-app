@@ -23,3 +23,25 @@ on conflict (id) do nothing;
 alter table public.blocco_pagina drop constraint blocco_pagina_quando_check;
 alter table public.blocco_pagina add constraint blocco_pagina_quando_check
   check (quando in ('preventivo', 'preventivo_duo', 'sposi', 'sempre', 'album'));
+
+-- Album scelto dopo la consegna delle foto: righe per il riepilogo della pagina (il preventivo confermato non si tocca).
+alter table public.album
+  add column scelto_il timestamptz,
+  add column scelta jsonb not null default '[]'::jsonb check (jsonb_typeof(scelta) = 'array');
+
+-- Consegna delle foto: l'uscita da "Lightroom", verso qualsiasi stato. Serve alla proposta dell'album.
+alter table public.matrimonio
+  add column foto_consegnate_il date,
+  add column album_proposto_il date;
+
+create function privato.segna_consegna_foto() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if old.stato = 'wdg_lightroom' and new.stato <> 'wdg_lightroom' and new.foto_consegnate_il is null then
+    new.foto_consegnate_il := (now() at time zone 'Europe/Rome')::date;
+  end if;
+  return new;
+end $$;
+
+create trigger matrimonio_consegna_foto before update of stato on public.matrimonio
+  for each row execute function privato.segna_consegna_foto();

@@ -288,6 +288,9 @@ export function leggiWorkbook(buf: ArrayBuffer | Uint8Array, oggi = new Date().t
         videomaker: video || null,
         memory_box_consegnata: vero(w["MB"]) && importi.some((x) => x.voce === "memory_box"),
         recensione_ricevuta: vero(w["REC"]),
+        // date degli automatismi del foglio: scritte dopo l'importazione (vedi importa)
+        foto_consegnate_il: dataIso(p?.["CONSEGNA FOTO"]),
+        album_proposto_il: dataIso(p?.["PROMEMORIA ALBUM"]),
         sposi, preventivo, importi,
         incassato: euro(w["SALDO"]) ?? 0,
         album,

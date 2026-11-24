@@ -3,7 +3,7 @@
  * Funzione pura (testabile): decide il modo della pagina e filtra cosa può arrivare al browser.
  */
 
-import { copertineAlbum, faseAlbum, passiAlbum, selezioneModificabile, testoCopertina, tipoAlbum, type BloccoAlbum, type RigaAlbum } from "./album";
+import { propostaAperta, copertineAlbum, faseAlbum, passiAlbum, selezioneModificabile, testoCopertina, tipoAlbum, type BloccoAlbum, type RigaAlbum } from "./album";
 
 export type Modo = "preventivo" | "sposi" | "chiuso" | "non_disponibile";
 
@@ -11,7 +11,7 @@ export interface RigheGrezze {
   matrimonio: {
     id: string; codice_id: string; stato: string; data_inizio: string | null; data_fine: string | null;
     preparativi: boolean | null; galleria_url: string | null; copertina_url: string | null;
-    link_upyourshoot: string | null; pagina_congiunta: boolean;
+    link_upyourshoot: string | null; pagina_congiunta: boolean; foto_consegnate_il?: string | null;
     location: { nome: string; comune: string | null; provincia: string | null; galleria_url: string | null; copertina_url: string | null } | null;
     formula: { codice: string } | null;
     videomaker: { codice: string | null; nome: string } | null;
@@ -31,6 +31,8 @@ export interface RigheGrezze {
   impostazioni: { marchio: unknown; zone: string[]; url_recensioni: string | null; condizioni_pagamento: string | null } | null;
   contratto: { id: string; testo: string } | null;
   album?: RigaAlbum | null;
+  /** aaaa-mm-gg, ora di Roma (passato da fuori per i test). */
+  oggi?: string;
 }
 
 export interface Blocco {
@@ -118,7 +120,24 @@ export function componiPagina(r: RigheGrezze) {
     urlRecensioni: modo === "preventivo" && /^https:\/\//.test(r.impostazioni?.url_recensioni ?? "") ? r.impostazioni!.url_recensioni! : null,
     contratto: r.contratto,
     album: componiAlbum(r, modo),
+    propostaAlbum: componiProposta(r, modo),
+    // Album scelto dopo la conferma: righe in coda al riepilogo
+    righeAlbum: Array.isArray(r.album?.scelta) ? r.album!.scelta! : [],
   };
+}
+
+/** Proposta dell'album a chi non l'ha preso, dopo la consegna delle foto. */
+function componiProposta(r: RigheGrezze, modo: Modo) {
+  if (modo !== "sposi" && modo !== "chiuso") return null;
+  const blocco = (r.blocchi.find((b) => b.chiave === "album-sposi")?.dati ?? null) as BloccoAlbum | null;
+  const imp = Object.fromEntries(r.importi.map((x) => [x.voce, x.importo]));
+  const oggi = r.oggi ?? new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+  const aperta = propostaAperta({
+    stato: r.matrimonio.stato, importoAlbum: imp.album ?? 0, scelto: !!r.album?.scelto_il,
+    consegna: r.matrimonio.foto_consegnate_il ?? null, dataMatrimonio: r.matrimonio.data_inizio, mesi: blocco?.proposta?.mesi, oggi,
+  });
+  if (!aperta) return null;
+  return { sopratitolo: blocco?.proposta?.sopratitolo ?? "", titolo: blocco?.proposta?.titolo ?? "Il vostro Album", corpo: blocco?.proposta?.corpo ?? "" };
 }
 
 /** Sezione album: solo nell'area Sposi e solo nelle fasi previste. L'indirizzo dell'anteprima si aggiunge sul server. */

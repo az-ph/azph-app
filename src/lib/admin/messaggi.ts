@@ -10,6 +10,7 @@ export const MESSAGGI = [
   { chiave: "timeline", titolo: "Timeline aggiornata", segnaInviato: false },
   { chiave: "album", titolo: "Album", segnaInviato: false },
   { chiave: "album_pagina", titolo: "Album + pagina", segnaInviato: false },
+  { chiave: "album_proposta", titolo: "Proposta album", segnaInviato: false },
 ] as const;
 export type ChiaveMessaggio = (typeof MESSAGGI)[number]["chiave"];
 export const CHIAVI_MESSAGGIO = MESSAGGI.map((m) => m.chiave) as [ChiaveMessaggio, ...ChiaveMessaggio[]];
@@ -48,8 +49,9 @@ export function preparaMessaggi(modelli: Modello[], valori: Record<string, strin
 }
 
 /** Messaggio proposto all'apertura della scheda, in base a dove siamo con il preventivo. */
-export function messaggioSuggerito(p: { confermato: boolean; inviato: boolean; congiunta: boolean; stato?: string }): ChiaveMessaggio {
+export function messaggioSuggerito(p: { confermato: boolean; inviato: boolean; congiunta: boolean; stato?: string; propostaAlbum?: boolean }): ChiaveMessaggio {
   if (p.stato === "wdg_album_todo") return "album";
+  if (p.propostaAlbum) return "album_proposta";
   if (p.confermato) return "sposi";
   if (p.inviato) return "follow_up";
   return p.congiunta ? "duo" : "preventivo";

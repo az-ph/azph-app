@@ -19,7 +19,7 @@ import { stileDaColori } from "@/lib/mail/testo";
 import { Campo, Riquadro, Spunta, inp } from "../campi";
 import { supabaseServizio } from "@/lib/supabase/server";
 import { BUCKET_ALBUM } from "@/lib/sposi/dati";
-import { faseAlbum, tipoAlbum, testoCopertina, type BloccoAlbum, type RigaAlbum } from "@/lib/sposi/album";
+import { STATI_PROPOSTA, faseAlbum, tipoAlbum, testoCopertina, type BloccoAlbum, type RigaAlbum } from "@/lib/sposi/album";
 import { salvaAlbum } from "../album-azioni";
 import { CaricaAnteprima } from "../carica-anteprima";
 import { Kpi, PillStato, Testata, giorniDa } from "../../ui";
@@ -43,7 +43,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
   const supabase = await supabaseSessione();
 
   const [m, sposi, prev, link, listino, location, videomaker, timeline, pagamenti, importi, eventi, fontiUsate, imp] = await Promise.all([
-    supabase.from("matrimonio").select("id, codice_id, stato, fonte, kickoff_il, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, link_upyourshoot, pagina_congiunta, videomaker_id, esempio").eq("id", id).maybeSingle(),
+    supabase.from("matrimonio").select("id, codice_id, stato, fonte, kickoff_il, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, link_upyourshoot, foto_consegnate_il, album_proposto_il, pagina_congiunta, videomaker_id, esempio").eq("id", id).maybeSingle(),
     supabase.from("sposo").select("ordine, nome, telefono, email, codice_fiscale, indirizzo, indirizzo_preparativi, consenso_promo").eq("matrimonio_id", id).order("ordine"),
     supabase.from("preventivo").select("id, versione, opzioni, prezzi_speciali, preselezione, scelte, totale, inviato_il, confermato_il, righe_confermate, note_cliente").eq("matrimonio_id", id).order("versione", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("link_sposi").select("token").eq("matrimonio_id", id).is("revocato_il", null).order("creato_il", { ascending: false }).limit(1).maybeSingle(),
@@ -120,6 +120,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
               <Campo etichetta="Data fine (più giorni)"><input type="date" name="data_fine" defaultValue={mat.data_fine ?? ""} className={inp} /></Campo>
               <Campo etichetta="Ora inizio"><input type="time" name="ora_inizio" defaultValue={mat.ora_inizio?.slice(0, 5) ?? ""} className={inp} /></Campo>
               <Campo etichetta="Ora fine"><input type="time" name="ora_fine" defaultValue={mat.ora_fine?.slice(0, 5) ?? ""} className={inp} /></Campo>
+              <Campo etichetta="Foto consegnate il (si segna uscendo da Lightroom)"><input type="date" name="foto_consegnate_il" defaultValue={mat.foto_consegnate_il ?? ""} className={inp} /></Campo>
               <Campo etichetta="Kick-off meeting (crea [KOM] in calendario)"><input type="datetime-local" name="kickoff_il" defaultValue={mat.kickoff_il ? localeRoma(mat.kickoff_il) : ""} className={inp} /></Campo>
               <Campo etichetta="Fonte">
                 <select name="fonte" defaultValue={mat.fonte ?? ""} className={inp}><option value="">—</option>{fonti.map((f) => <option key={f.codice} value={f.codice}>{etichettaFonte(f)}</option>)}</select>
@@ -188,7 +189,8 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
       )}
 
       {tab === "messaggi" && (
-        <SchedaMessaggi mat={mat} sposi={s} prev={prev.data} listinoRighe={listino.data ?? []} videomaker={videomaker.data ?? []} urlSposi={urlSposi} />
+        <SchedaMessaggi mat={mat} sposi={s} prev={prev.data} listinoRighe={listino.data ?? []} videomaker={videomaker.data ?? []} urlSposi={urlSposi}
+          importoAlbum={(importi.data ?? []).find((x) => x.voce === "album")?.importo ?? 0} />
       )}
 
       {tab === "attivita" && (
@@ -476,7 +478,8 @@ function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
   );
 }
 
-async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlSposi }: {
+async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlSposi, importoAlbum }: {
+  importoAlbum: number;
   mat: { id: string; data_inizio: string | null; formula_id: string | null; pagina_congiunta: boolean; videomaker_id: string | null; link_upyourshoot: string | null; stato: string };
   sposi: { ordine: number; nome: string | null; email: string | null; telefono: string | null }[];
   prev: { versione: number; opzioni: unknown; inviato_il: string | null; confermato_il: string | null } | null;
@@ -511,7 +514,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
     DATA_LUNGA: dataEstesa(mat.data_inizio).replace(/^\S+ /, ""),
     LINK: urlSposi, LINK_TIMELINE: `${urlSposi}#azp-timeline`, VERSIONE: prev ? `v${String(prev.versione).padStart(2, "0")}` : "",
     URL_RECENSIONI: imp.data?.url_recensioni ?? "", VIDEOMAKER: vm?.nome ?? "", VIDEOMAKER_TELEFONO: vm?.telefono ?? "",
-    LINK_ALBUM: `${urlSposi}#azp-anteprima`,
+    LINK_ALBUM: `${urlSposi}#azp-anteprima`, LINK_PROPOSTA: `${urlSposi}#azp-album`,
   };
   const pronti = preparaMessaggi(modelli.data ?? [], valori, { omaggi, video: !!opz.proponi_video && !mat.pagina_congiunta, firma: firma.testo, titoli: { duo: marchio.nome_proposta_congiunta }, galleria: mat.link_upyourshoot ?? "" });
   const persone = [...sposi].sort((a, b) => a.ordine - b.ordine).map((x) => ({ nome: x.nome ?? "", email: x.email?.trim() ?? "", telefono: x.telefono ?? "" }));
@@ -530,7 +533,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
   return (
     <div className="flex flex-col gap-4">
     <Messaggi mid={mat.id} pronti={pronti} persone={persone} firma={firma} stile={stileDaColori(imp.data?.colori as Record<string, string> | null)}
-      suggerito={messaggioSuggerito({ confermato: !!prev?.confermato_il, inviato: !!prev?.inviato_il, congiunta: mat.pagina_congiunta, stato: mat.stato })} />
+      suggerito={messaggioSuggerito({ confermato: !!prev?.confermato_il, inviato: !!prev?.inviato_il, congiunta: mat.pagina_congiunta, stato: mat.stato, propostaAlbum: STATI_PROPOSTA.includes(mat.stato) && !importoAlbum })} />
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         <Riquadro titolo="Segna un contatto" azione={<span className="text-xs text-tenue">telefonate, WhatsApp, incontri, invii fuori dall&apos;app</span>}>
           <Modulo azione={registraContatto} etichetta="Segna">
@@ -615,7 +618,7 @@ async function SchedaAlbum({ mid, stato, scelte, importi }: { mid: string; stato
   // La scheda è già passata dalla policy admin (il Matrimonio è stato letto con la sessione).
   const supabase = await supabaseSessione();
   const [alb, blk] = await Promise.all([
-    supabase.from("album").select("tipo, selezione_il, copertina, copertina_nota, note_sposi, anteprima_path, anteprima_nome, anteprima_il, approvato_il, modifiche_il, note_modifiche").eq("matrimonio_id", mid).maybeSingle(),
+    supabase.from("album").select("tipo, selezione_il, copertina, copertina_nota, note_sposi, anteprima_path, anteprima_nome, anteprima_il, approvato_il, modifiche_il, note_modifiche, scelto_il, scelta").eq("matrimonio_id", mid).maybeSingle(),
     supabase.from("blocco_pagina").select("dati").eq("chiave", "album-sposi").maybeSingle(),
   ]);
   const a = alb.data as RigaAlbum | null;
@@ -638,6 +641,7 @@ async function SchedaAlbum({ mid, stato, scelte, importi }: { mid: string; stato
           <ul className="f-righe text-sm">
             <li><span className="text-tenue">Fase</span><span className="text-right">{fase ? FASE_ALBUM[fase] : inPercorso ? "—" : "La sezione album compare nella pagina in \"Album da fare\" e \"Album\""}</span></li>
             <li><span className="text-tenue">Album</span><span className="text-right">{tipo === "standard" ? "Standard" : "Premium"}{imp.album ? ` · ${euro(imp.album)}` : " · nessun importo"}{imp.album_genitori ? ` + genitori ${euro(imp.album_genitori)}` : ""}</span></li>
+            {a?.scelto_il && <li><span className="text-tenue">Scelto dalla pagina</span><span className="text-right">il {data(a.scelto_il)}{a.scelta?.length ? ` · ${a.scelta.map((x) => x.voce).join(", ")}` : ""}</span></li>}
             <li><span className="text-tenue">Selezione</span><span className="text-right">{a?.selezione_il ? `ricevuta il ${data(a.selezione_il)}` : "non ancora"}</span></li>
             <li><span className="text-tenue">Copertina</span><span className="text-right">{a ? testoCopertina(blocco, a) || "—" : "—"}</span></li>
             {a?.note_sposi && <li><span className="text-tenue">Note degli Sposi</span><span className="whitespace-pre-line text-right">{a.note_sposi}</span></li>}

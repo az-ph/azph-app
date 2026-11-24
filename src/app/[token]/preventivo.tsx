@@ -222,13 +222,13 @@ export function Preventivo(props: {
   );
 }
 
-function PrezzoCard({ v, suffisso }: { v: VoceOfferta; suffisso?: React.ReactNode }) {
+export function PrezzoCard({ v, suffisso }: { v: VoceOfferta; suffisso?: React.ReactNode }) {
   const barrato = v.barrato ? <span className="barrato">{euroTesto(v.barrato)}</span> : null;
   if (v.prezzo === 0) return <>{barrato}Omaggio</>;
   return <>{barrato}+ <Euro centesimi={v.prezzo} />{suffisso}</>;
 }
 
-function Card({ v, attiva, disabilitata, onClick }: { v: VoceOfferta; attiva: boolean; disabilitata?: boolean; onClick: () => void }) {
+export function Card({ v, attiva, disabilitata, onClick }: { v: VoceOfferta; attiva: boolean; disabilitata?: boolean; onClick: () => void }) {
   const fisso = v.categoria === "omaggio" || v.incluso;
   return (
     <button type="button" className={`opz${fisso ? " fisso" : ""}`} aria-pressed={fisso ? undefined : attiva}

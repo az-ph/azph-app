@@ -45,7 +45,8 @@ export function cosaFare(elenco: MatrimonioOggi[], oggi: string) {
       if (manca <= 0) continue;
       if (r.tipo === "acconto" && r.scadenza && giorni(oggi, r.scadenza) <= GIORNI_PREAVVISO_PAGAMENTO && m.stato === "wdg_confermato")
         pagamenti.push({ m, rata: "acconto", manca, scadenza: r.scadenza, scaduto: r.scadenza < oggi });
-      if (r.tipo !== "acconto" && m.stato === "wdg_invoice")
+      // saldo dalla consegna delle foto (anche mentre si fa l'album); album quando torna in Saldo
+      if ((r.tipo === "saldo" && ["wdg_invoice", "wdg_album_todo", "wdg_album"].includes(m.stato)) || (r.tipo === "album" && m.stato === "wdg_invoice"))
         pagamenti.push({ m, rata: r.tipo, manca, scadenza: null, scaduto: false });
     }
   }

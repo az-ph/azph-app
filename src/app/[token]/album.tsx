@@ -3,7 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { DatiPagina } from "@/lib/sposi/componi";
-import { albumRisposta, albumSelezione } from "./azioni";
+import { albumRisposta, albumScelta, albumSelezione } from "./azioni";
+import { legataA, type VoceOfferta } from "@/lib/listino/motore";
+import { Card, PrezzoCard } from "./preventivo";
+import { Paragrafi, euroTesto } from "./testo";
 
 type Album = NonNullable<DatiPagina["album"]>;
 
@@ -146,5 +149,74 @@ function Anteprima({ token, a, solaLettura }: { token: string; a: Album; solaLet
         </>
       )}
     </>
+  );
+}
+
+/** Dopo la consegna delle foto: gli Sposi senza album possono sceglierlo qui. */
+export function ProponiAlbum({ token, testi, voci }: { token: string; testi: { sopratitolo: string; titolo: string; corpo: string }; voci: VoceOfferta[] }) {
+  const router = useRouter();
+  const album = voci.filter((v) => v.categoria === "album");
+  const repliche = voci.filter((v) => v.categoria === "replica");
+  const [scelto, setScelto] = useState<string | null>(album.length === 1 ? album[0].codice : null);
+  const [qta, setQta] = useState<Record<string, number>>({});
+  const [conferma, setConferma] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; testo: string } | null>(null);
+  const [inCorso, avvia] = useTransition();
+
+  const voce = album.find((v) => v.codice === scelto);
+  const attive = repliche.filter((r) => scelto && legataA(r, scelto));
+  const totale = (voce?.prezzo ?? 0) + attive.reduce((t, r) => t + r.prezzo * (qta[r.codice] ?? 0), 0);
+
+  function invia() {
+    setMsg(null);
+    avvia(async () => {
+      const r = await albumScelta(token, { album: scelto, qta: Object.fromEntries(attive.map((x) => [x.codice, qta[x.codice] ?? 0])), totale });
+      setMsg(r.ok ? { ok: true, testo: "Grazie! Qui sotto trovate subito le istruzioni per la selezione e la copertina." } : { ok: false, testo: r.errore ?? "Errore" });
+      if (r.ok) router.refresh();
+    });
+  }
+
+  return (
+    <section className="banda" id="azp-album">
+      <div className="wrap">
+        {testi.sopratitolo && <p className="sez">{testi.sopratitolo}</p>}
+        <h2>{testi.titolo}</h2>
+        <Paragrafi testo={testi.corpo} />
+        <div className="opzioni due">
+          {album.map((v) => <Card key={v.codice} v={v} attiva={scelto === v.codice} disabilitata={inCorso} onClick={() => { setScelto(scelto === v.codice ? null : v.codice); setConferma(false); }} />)}
+          {repliche.map((r) => {
+            const attiva = !!scelto && legataA(r, scelto);
+            const q = attiva ? (qta[r.codice] ?? 0) : 0;
+            const cambia = (d: number) => { setQta({ ...qta, [r.codice]: Math.max(0, Math.min(10, q + d)) }); setConferma(false); };
+            return (
+              <div key={r.codice} className={`opz${q ? " on" : ""}`} style={{ cursor: "default" }}>
+                <span className="voce">{r.voce}</span>
+                <span className="euro"><PrezzoCard v={r} suffisso={<small> cad.</small>} /></span>
+                {r.descrizione && <span className="desc">{r.descrizione}</span>}
+                <div className="qta">
+                  <button type="button" disabled={!attiva || !q || inCorso} onClick={() => cambia(-1)} aria-label="Una copia in meno">−</button>
+                  <output>{q}</output>
+                  <button type="button" disabled={!attiva || q >= 10 || inCorso} onClick={() => cambia(1)} aria-label="Una copia in più">+</button>
+                  <span className="stato">{attiva ? "" : "Disponibile scegliendo l’album"}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {!conferma ? (
+          <button className="cta" type="button" disabled={!voce || inCorso} onClick={() => setConferma(true)}>
+            {voce ? `Scelgo l’album - ${euroTesto(totale)}` : "Selezionate l’album"}</button>
+        ) : (
+          <>
+            <p style={{ marginTop: "1.25rem" }}>Confermate {voce?.voce}{attive.some((r) => qta[r.codice]) ? " con le repliche indicate" : ""}, per {euroTesto(totale)}? Si salda alla consegna dell’album.</p>
+            <div className="ant-bottoni">
+              <button className="cta" type="button" disabled={inCorso} onClick={invia}>{inCorso ? "Invio…" : "Sì, confermo"}</button>
+              <button className="cta secondario" type="button" disabled={inCorso} onClick={() => setConferma(false)}>Annulla</button>
+            </div>
+          </>
+        )}
+        {msg && <p className={msg.ok ? "salvato" : "errore"} role="status">{msg.testo}</p>}
+      </div>
+    </section>
   );
 }
