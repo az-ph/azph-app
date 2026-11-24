@@ -24,7 +24,9 @@
     "motto": "Un reportage con l’anima\nper il vostro Wedding Day",
     "telefono": "+39 348 0061131",
     "localita": "Castellucchio MN",
-    "nome_proposta_congiunta": "Proposta VdM"
+    "nome_proposta_congiunta": "Proposta VdM",
+    "logo_stretto_url": "/istanze/azph/logo-stretto-chiaro.svg",
+    "logo_stretto_scuro_url": "/istanze/azph/logo-stretto-scuro.svg"
   },
   "zone": [
     "Mantova",
