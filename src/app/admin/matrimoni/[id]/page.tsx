@@ -102,7 +102,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
       </nav>
 
       {tab === "dati" && (
-        <Modulo azione={salvaDati} className="flex flex-col gap-4">
+        <Modulo barra azione={salvaDati} className="flex flex-col gap-4">
           <input type="hidden" name="id" value={mat.id} />
           <Riquadro titolo="Il Matrimonio">
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -242,7 +242,7 @@ function SchedaPreventivo({ mat, prev, listinoRighe, urlSposi }: {
 
   return (
     <div className="grid lg:grid-cols-[1fr_22rem] gap-4 items-start">
-      <Modulo azione={salvaPreventivo} className="flex flex-col gap-4">
+      <Modulo barra azione={salvaPreventivo} className="flex flex-col gap-4">
         <input type="hidden" name="id" value={prev.id} />
         <input type="hidden" name="matrimonio_id" value={mat.id} />
         <Riquadro titolo="Formula e proposte">
@@ -336,7 +336,7 @@ function SchedaTimeline({ mid, righe }: { mid: string; righe: { ora: string | nu
   return (
     <div className="grid lg:grid-cols-[1fr_22rem] gap-4 items-start">
       <Riquadro titolo="Timeline" azione={<span className="text-xs text-tenue">ora Momento | luogo · # = nota privata</span>}>
-        <Modulo azione={salvaTimeline}>
+        <Modulo barra azione={salvaTimeline}>
           <input type="hidden" name="matrimonio_id" value={mid} />
           <textarea name="timeline" rows={16} aria-label="Timeline, una riga per momento" className={`${inp} font-mono text-sm leading-6`}
             defaultValue={scriviTimeline(righe.map((r) => ({ ...r, fase: r.fase ?? "" })))}

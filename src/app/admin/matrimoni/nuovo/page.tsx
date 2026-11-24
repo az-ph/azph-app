@@ -20,7 +20,7 @@ export default async function NuovoMatrimonio() {
     <div className="max-w-4xl">
       <Testata sopra={<Link href="/admin/matrimoni" className="hover:text-testo">Matrimoni</Link>} titolo="Nuovo Matrimonio"
         sotto="Il codice prende l'anno della richiesta (oggi). Dopo il salvataggio si apre il preventivo." />
-      <Modulo azione={creaMatrimonio} etichetta="Crea e vai al preventivo" className="flex flex-col gap-4">
+      <Modulo barra azione={creaMatrimonio} etichetta="Crea e vai al preventivo" className="flex flex-col gap-4">
         <Riquadro titolo="Il Matrimonio">
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-2"><Campo etichetta="Data del Matrimonio"><input type="date" name="data_inizio" className={inp} /></Campo><AvvisoData /></div>

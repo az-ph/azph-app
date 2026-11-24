@@ -4,22 +4,38 @@ import { startTransition, useActionState } from "react";
 import type { Esito } from "./azioni";
 
 /** Modulo con salvataggio e messaggio di esito accanto al pulsante. */
-export function Modulo({ azione, etichetta = "Salva", children, className, compatto }: {
+export function Modulo({ azione, etichetta = "Salva", children, className, compatto, barra }: {
   azione: (s: Esito, fd: FormData) => Promise<Esito>; etichetta?: string; children: React.ReactNode; className?: string; compatto?: boolean;
+  /** Pulsante anche in alto, in una barra che resta visibile scorrendo la pagina. */
+  barra?: boolean;
 }) {
   const [esito, invia, inCorso] = useActionState(azione, null);
   return (
     // onSubmit invece di action: React non riporta i campi ai valori di prima dopo il salvataggio
     <form className={className} onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => invia(fd)); }}>
+      {barra && (
+        <div className="sticky top-14 sm:top-0 z-20 -mx-1 px-1 py-2 bg-fondo/90 backdrop-blur flex items-center justify-end gap-4">
+          <Messaggio esito={esito} />
+          <button className="f-btn f-btn-pieno !px-6 !py-2.5 !text-[0.9375rem]" disabled={inCorso}>{inCorso ? "Salvataggio…" : etichetta}</button>
+        </div>
+      )}
       {children}
       <div className={compatto ? "flex items-center gap-2" : "mt-5 flex flex-wrap items-center gap-4"}>
-        <button className={`f-btn f-btn-pieno ${compatto ? "!py-1.5 !px-3" : ""}`} disabled={inCorso}>
+        <button className={`f-btn f-btn-pieno ${compatto ? "!py-1.5 !px-3" : "!px-6 !py-2.5 !text-[0.9375rem]"}`} disabled={inCorso}>
           {inCorso ? "Salvataggio…" : etichetta}
         </button>
-        {esito?.ok && <span className="text-ok text-sm font-medium" role="status">Salvato ✓</span>}
-        {esito?.errore && <span className="text-errore text-sm" role="alert">{esito.errore}</span>}
+        <Messaggio esito={esito} />
       </div>
     </form>
+  );
+}
+
+function Messaggio({ esito }: { esito: Esito }) {
+  return (
+    <>
+      {esito?.ok && <span className="text-ok text-sm font-medium" role="status">Salvato ✓</span>}
+      {esito?.errore && <span className="text-errore text-sm" role="alert">{esito.errore}</span>}
+    </>
   );
 }
 
