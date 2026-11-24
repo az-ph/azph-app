@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { data } from "@/lib/formato";
-import { nomiBrevi } from "@/lib/admin/stati";
+import { nomiBrevi, nomiCompleti } from "@/lib/admin/stati";
 import { Kpi, Testata, giorniDa } from "../ui";
 import { ElencoMatrimoni } from "./elenco";
 import type { VoceElenco } from "@/lib/admin/ricerca";
 
 type Riga = {
-  id: string; codice_id: string; stato: string; data_inizio: string | null; fonte: string | null;
+  id: string; codice_id: string; stato: string; data_inizio: string | null; fonte: string | null; esempio: boolean;
   location: { nome: string; comune: string | null } | null;
   link: { token: string; revocato_il: string | null }[]; sposi: { ordine: number; nome: string | null }[];
   preventivo: { id: string; inviato_il: string | null }[];
@@ -16,12 +16,12 @@ type Riga = {
 export default async function Matrimoni() {
   const supabase = await supabaseSessione();
   const { data: righe, error } = await supabase.from("matrimonio")
-    .select("id, codice_id, stato, data_inizio, fonte, location ( nome, comune ), link:link_sposi ( token, revocato_il ), sposi:sposo ( ordine, nome ), preventivo ( id, inviato_il )")
+    .select("id, codice_id, stato, data_inizio, fonte, esempio, location ( nome, comune ), link:link_sposi ( token, revocato_il ), sposi:sposo ( ordine, nome ), preventivo ( id, inviato_il )")
     .order("data_inizio", { ascending: true, nullsFirst: false });
 
   if (error) return <p className="text-errore">Il database non risponde: {error.message}</p>;
   const tutti = (righe ?? []) as unknown as Riga[];
-  const matrimoni = tutti.filter((m) => !m.stato.startsWith("clo"));
+  const matrimoni = tutti.filter((m) => !m.stato.startsWith("clo") && !m.esempio);
   const nuovo = <Link href="/admin/matrimoni/nuovo" className="f-btn f-btn-pieno">+ Nuovo Matrimonio</Link>;
 
   if (!matrimoni.length) {
@@ -47,10 +47,10 @@ export default async function Matrimoni() {
 
   const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
   const voci: VoceElenco[] = tutti.map((m) => ({
-    id: m.id, codice: m.codice_id, stato: m.stato, data: m.data_inizio, nomi: nomiBrevi(m.sposi), fonte: m.fonte ?? "",
+    id: m.id, codice: m.codice_id, stato: m.stato, data: m.data_inizio, nomi: nomiCompleti(m.sposi), fonte: m.fonte ?? "",
     location: m.location ? [m.location.nome, m.location.comune].filter(Boolean).join(" - ") : "",
     token: m.link.find((l) => !l.revocato_il)?.token ?? null,
-    senzaPreventivo: m.stato.startsWith("qte") && !m.preventivo.length,
+    senzaPreventivo: m.stato.startsWith("qte") && !m.preventivo.length && !m.esempio, esempio: m.esempio,
   }));
   return (
     <>

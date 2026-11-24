@@ -13,7 +13,7 @@ type Db = SupabaseClient;
 export async function sincronizzaMatrimonio(db: Db, mid: string, base: string): Promise<string | null> {
   if (!calendarioCollegato()) return null;
   const [{ data: m }, { data: tl }] = await Promise.all([
-    db.from("matrimonio").select("codice_id, stato, fonte, data_inizio, data_fine, ora_inizio, ora_fine, calendario_evento, location ( nome, comune ), sposi:sposo ( ordine, nome, telefono )").eq("id", mid).maybeSingle(),
+    db.from("matrimonio").select("codice_id, stato, fonte, esempio, data_inizio, data_fine, ora_inizio, ora_fine, calendario_evento, location ( nome, comune ), sposi:sposo ( ordine, nome, telefono )").eq("id", mid).maybeSingle(),
     db.from("timeline").select("giorno, ora").eq("matrimonio_id", mid),
   ]);
   if (!m) return null;
@@ -22,7 +22,7 @@ export async function sincronizzaMatrimonio(db: Db, mid: string, base: string): 
   const loc = Array.isArray(locGrezza) ? locGrezza[0] ?? null : locGrezza;
   const nomi = nomiBrevi(sposi) || m.codice_id;
   const evento = eventoMatrimonio({
-    codice: m.codice_id, stato: m.stato, fonte: m.fonte, nomi,
+    codice: m.codice_id, stato: m.stato, fonte: m.fonte, nomi, esempio: m.esempio,
     dataInizio: m.data_inizio, dataFine: m.data_fine, oraInizio: m.ora_inizio, oraFine: m.ora_fine,
     luogo: loc ? [loc.nome, loc.comune].filter(Boolean).join(" - ") : "",
     telefoni: sposi.map((s) => ({ nome: primoNomeDi(s.nome), telefono: s.telefono ?? "" })),

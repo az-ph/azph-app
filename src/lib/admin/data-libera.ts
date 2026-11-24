@@ -17,7 +17,7 @@ export async function controllaData(iso: string, escludi?: string): Promise<Cont
   const supabase = await supabaseSessione();
   const q = supabase.from("matrimonio").select("id, codice_id, stato, sposi:sposo ( ordine, nome )")
     .or(`data_inizio.eq.${iso},and(data_inizio.lte.${iso},data_fine.gte.${iso})`)
-    .in("stato", STATI.map((x) => x.valore).filter((v) => v.startsWith("qte") || v.startsWith("wdg")));
+    .in("stato", STATI.map((x) => x.valore).filter((v) => v.startsWith("qte") || v.startsWith("wdg"))).eq("esempio", false);
   const [{ data: righe }, cal] = await Promise.all([escludi ? q.neq("id", escludi) : q, leggiCalendario(iso)]);
   return {
     matrimoni: (righe ?? []).map((m) => ({ id: m.id, codice: m.codice_id, stato: m.stato, nomi: nomiBrevi(m.sposi as { ordine: number; nome: string | null }[]) })),

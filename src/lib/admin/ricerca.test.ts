@@ -30,3 +30,10 @@ describe("ricerca Matrimoni", () => {
     ]);
   });
 });
+
+describe("pagine di esempio", () => {
+  it("stanno in un gruppo a parte", () => {
+    const e = [{ id: "x", codice: "2026-089", stato: "qte_quote", data: "2027-06-21", nomi: "Wedding", location: "", fonte: "", token: null, senzaPreventivo: false, esempio: true }];
+    expect(raggruppa(filtra(e, "", "tutti"), "2026-11-24").map((g) => g.titolo)).toEqual(["Pagine di esempio"]);
+  });
+});

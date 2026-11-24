@@ -15,7 +15,7 @@ export default async function Oggi() {
   const supabase = await supabaseSessione();
   const { data: righe, error } = await supabase.from("matrimonio")
     .select("id, codice_id, stato, data_inizio, kickoff_il, sposi:sposo ( ordine, nome ), preventivo ( versione, inviato_il, confermato_il )")
-    .in("stato", APERTI);
+    .in("stato", APERTI).eq("esempio", false);
   if (error) return <p className="text-errore">Il database non risponde: {error.message}</p>;
   const ids = (righe ?? []).map((m) => m.id);
   const idsPreventivi = (righe ?? []).filter((m) => m.stato.startsWith("qte")).map((m) => m.id);

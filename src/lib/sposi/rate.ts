@@ -31,6 +31,15 @@ export function calcolaRate(perVoce: Record<string, number>, incassi: Incasso[],
     r.incassato += usa;
     altro -= usa;
   }
+
+  // Una rata pagata in più copre quella che manca (es. 500 dal foglio + saldo di 550 su 1.050):
+  // si ridistribuisce il totale incassato dei servizi, in ordine; l'eventuale eccedenza resta sull'ultima.
+  const servizio = rate.filter((r) => r.tipo !== "album");
+  let cassa = servizio.reduce((t, r) => t + r.incassato, 0) + altro;
+  if (servizio.some((r) => r.incassato > r.dovuto)) {
+    for (const r of servizio) { r.incassato = Math.min(r.dovuto, cassa); cassa -= r.incassato; }
+    servizio[servizio.length - 1].incassato += cassa;
+  }
   return rate;
 }
 

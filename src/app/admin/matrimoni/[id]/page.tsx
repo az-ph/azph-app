@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { data, dataEstesa, euro, euroBreve } from "@/lib/formato";
-import { STATI, etichettaFonte, nomiBrevi, prezziInTesto, unisciFonti } from "@/lib/admin/stati";
+import { STATI, etichettaFonte, nomiBrevi, nomiCompleti, prezziInTesto, unisciFonti } from "@/lib/admin/stati";
 import { calcolaOfferta, type Categoria } from "@/lib/listino/motore";
 import { listinoDaRighe, preventivoDaRiga } from "@/lib/sposi/dati";
 import { eliminaIncasso, registraIncasso, rigeneraLink, salvaDati, salvaImporto, salvaPreventivo, salvaTimeline, segnaInviato } from "../azioni";
@@ -37,7 +37,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
   const supabase = await supabaseSessione();
 
   const [m, sposi, prev, link, listino, location, videomaker, timeline, pagamenti, importi, eventi, fontiUsate, imp] = await Promise.all([
-    supabase.from("matrimonio").select("id, codice_id, stato, fonte, kickoff_il, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, pagina_congiunta, videomaker_id").eq("id", id).maybeSingle(),
+    supabase.from("matrimonio").select("id, codice_id, stato, fonte, kickoff_il, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, pagina_congiunta, videomaker_id, esempio").eq("id", id).maybeSingle(),
     supabase.from("sposo").select("ordine, nome, telefono, email, codice_fiscale, indirizzo, indirizzo_preparativi, consenso_promo").eq("matrimonio_id", id).order("ordine"),
     supabase.from("preventivo").select("id, versione, opzioni, prezzi_speciali, preselezione, scelte, totale, inviato_il, confermato_il, righe_confermate, note_cliente").eq("matrimonio_id", id).order("versione", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("link_sposi").select("token").eq("matrimonio_id", id).is("revocato_il", null).order("creato_il", { ascending: false }).limit(1).maybeSingle(),
@@ -76,7 +76,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
     <div>
       <Testata
         sopra={<><Link href="/admin/matrimoni" className="hover:text-testo">Matrimoni</Link> <span aria-hidden="true">/</span> <span className="tabular-nums">{mat.codice_id}</span></>}
-        titolo={nomiBrevi(s) || "Senza nomi"}
+        titolo={nomiCompleti(s) || "Senza nomi"}
         extra={<PillStato stato={mat.stato} />}
         sotto={[mat.data_inizio ? `${dataEstesa(mat.data_inizio)}` : "Data da definire", luogo ? `${luogo.nome}${luogo.comune ? `, ${luogo.comune}` : ""}` : null, mat.fonte ? `fonte ${etichettaFonte(fonti.find((f) => f.codice === mat.fonte) ?? { codice: mat.fonte, nome: mat.fonte })}` : null].filter(Boolean).join(" · ")}
         azioni={<>
@@ -133,6 +133,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
               <div className="flex flex-col gap-2.5 justify-end pb-1">
                 <Spunta nome="preparativi" etichetta="Preparativi" attiva={mat.preparativi} />
                 <Spunta nome="pagina_congiunta" etichetta="Pagina congiunta con il video" attiva={mat.pagina_congiunta} />
+                <Spunta nome="esempio" etichetta="Pagina di esempio (non è un Matrimonio vero)" attiva={mat.esempio} />
               </div>
             </div>
           </Riquadro>
@@ -476,7 +477,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
     supabase.from("impostazioni").select("marchio, colori, firma, url_recensioni").single(),
     supabase.from("modello_messaggio").select("chiave, oggetto, corpo_mail, corpo_whatsapp"),
     supabase.from("invio").select("modello, canale, stato, inviato_il, created_at, errore").eq("matrimonio_id", mat.id).order("created_at", { ascending: false }).limit(30),
-    supabase.from("contatto").select("id, tipo, canale, avvenuto_il, nota, prossimo_il").eq("matrimonio_id", mat.id),
+    supabase.from("contatto").select("id, tipo, canale, avvenuto_il, nota, prossimo_il, esito").eq("matrimonio_id", mat.id),
   ]);
   const marchio = (imp.data?.marchio ?? {}) as Record<string, string | undefined>;
   const firma = { testo: imp.data?.firma || marchio.firma || marchio.titolare || "", html: marchio.firma_mail_html || undefined };
@@ -503,7 +504,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
   const pronti = preparaMessaggi(modelli.data ?? [], valori, { omaggi, video: !!opz.proponi_video && !mat.pagina_congiunta, firma: firma.testo, titoli: { duo: marchio.nome_proposta_congiunta } });
   const persone = [...sposi].sort((a, b) => a.ordine - b.ordine).map((x) => ({ nome: x.nome ?? "", email: x.email?.trim() ?? "", telefono: x.telefono ?? "" }));
   const titolo = Object.fromEntries([...MESSAGGI.map((m) => [m.chiave, m.chiave === "duo" && marchio.nome_proposta_congiunta ? marchio.nome_proposta_congiunta : m.titolo]), ["conferma_sposi", "Conferma"]]);
-  type Voce = { il: string; cosa: string; come: string; nota?: string | null; prossimo?: string | null; id?: string; errore?: string | true | null; tipo?: string; canale?: string };
+  type Voce = { il: string; cosa: string; come: string; nota?: string | null; prossimo?: string | null; id?: string; errore?: string | true | null; tipo?: string; canale?: string; esito?: string | null };
   const storia: Voce[] = [
     ...(invii.data ?? []).map((x) => ({
       il: x.inviato_il ?? x.created_at, cosa: titolo[x.modello ?? ""] ?? x.modello ?? "", come: x.canale === "mail" ? "mail dall'app" : "WhatsApp dall'app",
@@ -511,7 +512,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
     })),
     ...(contatti.data ?? []).map((x) => ({
       il: x.avvenuto_il, cosa: x.tipo === "invio" ? "Invio del preventivo" : "Contatto", come: CANALE_CONTATTO[x.canale] ?? x.canale,
-      nota: x.nota, prossimo: x.prossimo_il, id: x.id, tipo: x.tipo, canale: x.canale,
+      nota: x.nota, prossimo: x.prossimo_il, id: x.id, tipo: x.tipo, canale: x.canale, esito: x.esito,
     })),
   ].sort((a, b) => b.il.localeCompare(a.il));
   return (
@@ -535,6 +536,12 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
               </Campo>
               <Campo etichetta="Data e ora"><input type="datetime-local" name="avvenuto_il" required defaultValue={localeRoma(new Date().toISOString())} className={inp} /></Campo>
               <Campo etichetta="Prossimo follow-up (facoltativo)"><input type="date" name="prossimo_il" className={inp} /></Campo>
+              <Campo etichetta="Esito">
+                <select name="esito" className={inp} defaultValue="">
+                  <option value="">—</option>
+                  {Object.entries(ESITO_CONTATTO).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+                </select>
+              </Campo>
               <Campo etichetta="Nota" largo><input name="nota" maxLength={500} placeholder="es. ci pensano, risentire a gennaio" className={inp} /></Campo>
             </div>
           </Modulo>
@@ -545,6 +552,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
               <li key={i}>
                 <span className="min-w-0">{x.cosa} <span className="text-tenue">· {x.come}</span>
                   {x.errore && <span className="text-errore"> · non inviata{x.errore !== true ? ` (${x.errore})` : ""}</span>}
+                  {x.esito && <span className={`ml-2 f-pill ${x.esito === "negativo" ? "bg-avviso-fondo text-avviso" : x.esito === "positivo" ? "bg-ok-fondo text-ok" : "bg-morbido text-tenue"}`}>{ESITO_CONTATTO[x.esito]?.split(" (")[0]}</span>}
                   {x.nota && <span className="block text-xs text-tenue">{x.nota}</span>}
                   {x.prossimo && <span className="block text-xs text-avviso">prossimo follow-up dal {data(x.prossimo)}</span>}</span>
                 <span className="flex items-start gap-3 tabular-nums text-tenue whitespace-nowrap">{dataOra(x.il)}
@@ -560,6 +568,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
                             <Campo etichetta="Come"><select name="canale" defaultValue={x.canale} className={inp}>{Object.entries(CANALE_CONTATTO).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></Campo>
                             <Campo etichetta="Data e ora"><input type="datetime-local" name="avvenuto_il" required defaultValue={localeRoma(x.il)} className={inp} /></Campo>
                             <Campo etichetta="Prossimo follow-up"><input type="date" name="prossimo_il" defaultValue={x.prossimo ?? ""} className={inp} /></Campo>
+                            <Campo etichetta="Esito"><select name="esito" defaultValue={x.esito ?? ""} className={inp}><option value="">—</option>{Object.entries(ESITO_CONTATTO).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></Campo>
                             <Campo etichetta="Nota" largo><input name="nota" maxLength={500} defaultValue={x.nota ?? ""} className={inp} /></Campo>
                           </div>
                         </Modulo>
@@ -577,6 +586,8 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
     </div>
   );
 }
+
+const ESITO_CONTATTO: Record<string, string> = { nessuna_risposta: "Nessuna risposta", positivo: "Interessati", negativo: "Riscontro negativo (chiude come Perso)" };
 
 const CANALE_CONTATTO: Record<string, string> = { whatsapp: "WhatsApp", telefono: "Telefono", mail: "Mail", persona: "Di persona", altro: "Altro" };
 

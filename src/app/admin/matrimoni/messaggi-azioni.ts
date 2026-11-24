@@ -95,6 +95,7 @@ const Contatto = z.object({
   avvenuto_il: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Scegli data e ora."),
   nota: z.string().trim().max(500).optional().default(""),
   prossimo_il: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal("")).optional().default(""),
+  esito: z.enum(["nessuna_risposta", "positivo", "negativo"]).or(z.literal("")).optional().default(""),
 });
 
 export async function registraContatto(_: Esito, fd: FormData): Promise<Esito> {
@@ -104,9 +105,18 @@ export async function registraContatto(_: Esito, fd: FormData): Promise<Esito> {
   const supabase = await supabaseSessione();
   const { error } = await supabase.from("contatto").insert({
     matrimonio_id: d.matrimonio_id, tipo: d.tipo, canale: d.canale, avvenuto_il: istanteDaRoma(d.avvenuto_il),
-    nota: d.nota || null, prossimo_il: d.prossimo_il || null,
+    nota: d.nota || null, prossimo_il: d.esito === "negativo" ? null : d.prossimo_il || null, esito: d.esito || null,
   });
   if (error) return { errore: error.message };
+  // Riscontro negativo: il Matrimonio si chiude come Perso (e l'eventuale evento in calendario si toglie)
+  if (d.esito === "negativo") {
+    await supabase.from("matrimonio").update({ stato: "clo_lost" }).eq("id", d.matrimonio_id).like("stato", "qte_%");
+    const h = await headers();
+    await sincronizzaMatrimonio(supabase, d.matrimonio_id, process.env.URL || `https://${h.get("host") ?? ""}`);
+    revalidatePath(`/admin/matrimoni/${d.matrimonio_id}`);
+    revalidatePath("/admin");
+    return { ok: true };
+  }
   // Un invio segnato a mano porta lo stato da Da contattare a Preventivo, come quello dall'app
   if (d.tipo === "invio") {
     const { data: passato } = await supabase.from("matrimonio").update({ stato: "qte_quote" }).eq("id", d.matrimonio_id).in("stato", ["qte_to_contact", "qte_contatto"]).select("id");
@@ -137,7 +147,7 @@ export async function aggiornaContatto(_: Esito, fd: FormData): Promise<Esito> {
   const d = r.data;
   const supabase = await supabaseSessione();
   const { error } = await supabase.from("contatto").update({
-    tipo: d.tipo, canale: d.canale, avvenuto_il: istanteDaRoma(d.avvenuto_il), nota: d.nota || null, prossimo_il: d.prossimo_il || null,
+    tipo: d.tipo, canale: d.canale, avvenuto_il: istanteDaRoma(d.avvenuto_il), nota: d.nota || null, prossimo_il: d.prossimo_il || null, esito: d.esito || null,
   }).eq("id", id.data).eq("matrimonio_id", d.matrimonio_id);
   if (error) return { errore: error.message };
   revalidatePath(`/admin/matrimoni/${d.matrimonio_id}`);
