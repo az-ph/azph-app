@@ -6,7 +6,7 @@ import { data, dataEstesa, euro, euroBreve } from "@/lib/formato";
 import { STATI, etichettaFonte, nomiBrevi, prezziInTesto, unisciFonti } from "@/lib/admin/stati";
 import { calcolaOfferta, type Categoria } from "@/lib/listino/motore";
 import { listinoDaRighe, preventivoDaRiga } from "@/lib/sposi/dati";
-import { eliminaIncasso, registraIncasso, rigeneraLink, salvaDati, salvaPreventivo, salvaTimeline, segnaInviato } from "../azioni";
+import { eliminaIncasso, registraIncasso, rigeneraLink, salvaDati, salvaImporto, salvaPreventivo, salvaTimeline, segnaInviato } from "../azioni";
 import { calcolaRate } from "@/lib/sposi/rate";
 import { scriviTimeline } from "@/lib/admin/timeline";
 import { CopiaLink, Modulo } from "../modulo";
@@ -14,7 +14,7 @@ import { AvvisoData } from "../avviso-data";
 import { localeRoma } from "@/lib/google/calendario";
 import { Messaggi } from "../messaggi";
 import { MESSAGGI, messaggioSuggerito, preparaMessaggi } from "@/lib/admin/messaggi";
-import { eliminaContatto, registraContatto } from "../messaggi-azioni";
+import { aggiornaContatto, eliminaContatto, registraContatto } from "../messaggi-azioni";
 import { stileDaColori } from "@/lib/mail/testo";
 import { Campo, Riquadro, Spunta, inp } from "../campi";
 import { Kpi, PillStato, Testata, giorniDa } from "../../ui";
@@ -362,6 +362,11 @@ function SchedaTimeline({ mid, righe }: { mid: string; righe: { ora: string | nu
   );
 }
 
+const NOME_VOCE: Record<string, string> = {
+  servizio: "Servizio fotografico", prewedding: "Prematrimoniale", photo_booth: "Photo booth", secondo_operatore: "Secondo operatore",
+  memory_box: "Memory box", album: "Album", album_genitori: "Album genitori", extra: "Extra",
+};
+
 const NOME_RATA: Record<string, string> = { acconto: "Acconto", saldo: "Saldo", album: "Album", album_genitori: "Album genitori", altro: "Incasso dal foglio / altro" };
 
 function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
@@ -371,7 +376,30 @@ function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
   const perVoce = Object.fromEntries(importi.map((x) => [x.voce, x.importo]));
   const rate = calcolaRate(perVoce, incassi, dataMatrimonio);
   const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
-  if (!importi.length) return <Riquadro><p className="text-sm text-tenue">Nessun importo: le rate compaiono dopo la conferma del preventivo.</p></Riquadro>;
+  const voci = (
+    <Riquadro titolo="Voci e importi" azione={<span className="text-xs text-tenue">le rate si ricalcolano da qui</span>}>
+      {importi.length > 0 && (
+        <ul className="f-righe text-sm mb-4">{importi.map((x) => (
+          <li key={x.voce} className="items-center">
+            <span>{NOME_VOCE[x.voce] ?? x.voce}</span>
+            <Modulo azione={salvaImporto} etichetta="Salva" compatto className="flex items-center gap-2">
+              <input type="hidden" name="matrimonio_id" value={mid} />
+              <input type="hidden" name="voce" value={x.voce} />
+              <input name="importo" defaultValue={(x.importo / 100).toFixed(2).replace(".", ",")} aria-label={`Importo ${NOME_VOCE[x.voce] ?? x.voce}`} className={`${inp} !w-28 !py-1.5 text-sm text-right`} />
+            </Modulo>
+          </li>
+        ))}</ul>
+      )}
+      <Modulo azione={salvaImporto} etichetta="Aggiungi" compatto className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="matrimonio_id" value={mid} />
+        <select name="voce" aria-label="Voce" className={`${inp} !w-auto !py-1.5 text-sm`} defaultValue="album">
+          {Object.entries(NOME_VOCE).filter(([k]) => !importi.some((x) => x.voce === k)).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+        </select>
+        <input name="importo" placeholder="500" inputMode="decimal" aria-label="Importo" className={`${inp} !w-28 !py-1.5 text-sm text-right`} />
+      </Modulo>
+    </Riquadro>
+  );
+  if (!importi.length) return <div className="flex flex-col gap-4"><Riquadro><p className="text-sm text-tenue">Nessun importo: le rate compaiono dopo la conferma del preventivo, oppure aggiungi le voci qui sotto.</p></Riquadro>{voci}</div>;
   const registrati = incassi.filter((x) => x.pagato_il);
   return (
     <div className="flex flex-col gap-4">
@@ -431,6 +459,7 @@ function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
           </Modulo>
         </Riquadro>
       </div>
+      {voci}
     </div>
   );
 }
@@ -474,7 +503,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
   const pronti = preparaMessaggi(modelli.data ?? [], valori, { omaggi, video: !!opz.proponi_video && !mat.pagina_congiunta, firma: firma.testo, titoli: { duo: marchio.nome_proposta_congiunta } });
   const persone = [...sposi].sort((a, b) => a.ordine - b.ordine).map((x) => ({ nome: x.nome ?? "", email: x.email?.trim() ?? "", telefono: x.telefono ?? "" }));
   const titolo = Object.fromEntries([...MESSAGGI.map((m) => [m.chiave, m.chiave === "duo" && marchio.nome_proposta_congiunta ? marchio.nome_proposta_congiunta : m.titolo]), ["conferma_sposi", "Conferma"]]);
-  type Voce = { il: string; cosa: string; come: string; nota?: string | null; prossimo?: string | null; id?: string; errore?: string | true | null };
+  type Voce = { il: string; cosa: string; come: string; nota?: string | null; prossimo?: string | null; id?: string; errore?: string | true | null; tipo?: string; canale?: string };
   const storia: Voce[] = [
     ...(invii.data ?? []).map((x) => ({
       il: x.inviato_il ?? x.created_at, cosa: titolo[x.modello ?? ""] ?? x.modello ?? "", come: x.canale === "mail" ? "mail dall'app" : "WhatsApp dall'app",
@@ -482,7 +511,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
     })),
     ...(contatti.data ?? []).map((x) => ({
       il: x.avvenuto_il, cosa: x.tipo === "invio" ? "Invio del preventivo" : "Contatto", come: CANALE_CONTATTO[x.canale] ?? x.canale,
-      nota: x.nota, prossimo: x.prossimo_il, id: x.id,
+      nota: x.nota, prossimo: x.prossimo_il, id: x.id, tipo: x.tipo, canale: x.canale,
     })),
   ].sort((a, b) => b.il.localeCompare(a.il));
   return (
@@ -510,7 +539,7 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
             </div>
           </Modulo>
         </Riquadro>
-        <Riquadro titolo="Storia dei contatti">
+        <Riquadro titolo="Storia dei contatti" className="relative">
           {storia.length ? (
             <ul className="f-righe text-sm">{storia.map((x, i) => (
               <li key={i}>
@@ -518,7 +547,25 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
                   {x.errore && <span className="text-errore"> · non inviata{x.errore !== true ? ` (${x.errore})` : ""}</span>}
                   {x.nota && <span className="block text-xs text-tenue">{x.nota}</span>}
                   {x.prossimo && <span className="block text-xs text-avviso">prossimo follow-up dal {data(x.prossimo)}</span>}</span>
-                <span className="flex items-center gap-3 tabular-nums text-tenue whitespace-nowrap">{dataOra(x.il)}
+                <span className="flex items-start gap-3 tabular-nums text-tenue whitespace-nowrap">{dataOra(x.il)}
+                  {x.id && (
+                    <details className="group">
+                      <summary className="list-none cursor-pointer hover:text-testo text-xs" aria-label="Modifica contatto" title="Modifica">✎</summary>
+                      <div className="absolute right-5 z-20 mt-2 w-[min(28rem,85vw)] f-carta p-4 shadow-lg whitespace-normal text-left text-testo">
+                        <Modulo azione={aggiornaContatto} etichetta="Salva">
+                          <input type="hidden" name="id" value={x.id} />
+                          <input type="hidden" name="matrimonio_id" value={mat.id} />
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <Campo etichetta="Cosa"><select name="tipo" defaultValue={x.tipo} className={inp}><option value="follow_up">Contatto o follow up</option><option value="invio">Invio del preventivo</option></select></Campo>
+                            <Campo etichetta="Come"><select name="canale" defaultValue={x.canale} className={inp}>{Object.entries(CANALE_CONTATTO).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></Campo>
+                            <Campo etichetta="Data e ora"><input type="datetime-local" name="avvenuto_il" required defaultValue={localeRoma(x.il)} className={inp} /></Campo>
+                            <Campo etichetta="Prossimo follow-up"><input type="date" name="prossimo_il" defaultValue={x.prossimo ?? ""} className={inp} /></Campo>
+                            <Campo etichetta="Nota" largo><input name="nota" maxLength={500} defaultValue={x.nota ?? ""} className={inp} /></Campo>
+                          </div>
+                        </Modulo>
+                      </div>
+                    </details>
+                  )}
                   {x.id && <form action={eliminaContatto}><input type="hidden" name="id" value={x.id} /><input type="hidden" name="matrimonio_id" value={mat.id} />
                     <button className="hover:text-errore text-xs" aria-label="Elimina contatto" title="Elimina">✕</button></form>}
                 </span>

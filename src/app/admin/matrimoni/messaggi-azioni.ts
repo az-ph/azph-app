@@ -129,3 +129,18 @@ export async function eliminaContatto(fd: FormData): Promise<void> {
   revalidatePath(`/admin/matrimoni/${mid}`);
   revalidatePath("/admin");
 }
+
+export async function aggiornaContatto(_: Esito, fd: FormData): Promise<Esito> {
+  const id = z.string().uuid().safeParse(fd.get("id"));
+  const r = Contatto.safeParse(Object.fromEntries(fd));
+  if (!id.success || !r.success) return { errore: r.success ? "Dati non validi." : r.error.issues[0]?.message ?? "Dati non validi." };
+  const d = r.data;
+  const supabase = await supabaseSessione();
+  const { error } = await supabase.from("contatto").update({
+    tipo: d.tipo, canale: d.canale, avvenuto_il: istanteDaRoma(d.avvenuto_il), nota: d.nota || null, prossimo_il: d.prossimo_il || null,
+  }).eq("id", id.data).eq("matrimonio_id", d.matrimonio_id);
+  if (error) return { errore: error.message };
+  revalidatePath(`/admin/matrimoni/${d.matrimonio_id}`);
+  revalidatePath("/admin");
+  return { ok: true };
+}
