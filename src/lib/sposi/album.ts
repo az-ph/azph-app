@@ -17,10 +17,10 @@ export interface BloccoAlbum {
   copertine?: { standard?: Copertina[]; premium?: Copertina[] };
   genitori?: string;
   studio?: string;
-  /** Codici del listino che decidono il tipo; senza, decide la soglia sull'importo. */
+  /** Codici del listino: decidono il tipo solo quando manca l'importo dell'album. */
   codici?: { standard?: string; premium?: string };
-  /** Album fino a questo importo (centesimi) = Standard. */
-  soglia_standard?: number;
+  /** Da questo importo (centesimi) l'album è Premium, sotto è Standard. */
+  soglia_premium?: number;
   /** Proposta dell'album a chi non l'ha preso: testi e mesi dalla consegna delle foto. */
   proposta?: { sopratitolo?: string; titolo?: string; corpo?: string; mesi?: number; giorni_promemoria?: number };
 }
@@ -41,14 +41,14 @@ export interface RigaAlbum {
   note_modifiche: string | null;
 }
 
-/** Tipo dell'album: quello scelto nella scheda, poi le scelte del preventivo, poi l'importo. */
+/** Tipo dell'album: quello scelto nella scheda, poi l'importo (sotto la soglia Standard), poi le scelte del preventivo. */
 export function tipoAlbum(p: { tipo: TipoAlbum | null | undefined; scelte: string[]; importoAlbum: number; blocco: BloccoAlbum | null }): TipoAlbum {
   if (p.tipo) return p.tipo;
+  const soglia = p.blocco?.soglia_premium;
+  if (p.importoAlbum > 0 && soglia) return p.importoAlbum < soglia ? "standard" : "premium";
   const c = p.blocco?.codici ?? {};
   if (c.standard && p.scelte.includes(c.standard)) return "standard";
-  if (c.premium && p.scelte.includes(c.premium)) return "premium";
-  const soglia = p.blocco?.soglia_standard ?? 0;
-  return p.importoAlbum > 0 && p.importoAlbum <= soglia ? "standard" : "premium";
+  return "premium";
 }
 
 export type FaseAlbum =

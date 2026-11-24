@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { faseAlbum, piuMesi, propostaAperta, percorsoAnteprima, selezioneModificabile, testoCopertina, tipoAlbum, type BloccoAlbum, type RigaAlbum } from "./album";
 
 const blocco: BloccoAlbum = {
-  codici: { standard: "alb-std", premium: "alb-prm" }, soglia_standard: 45000,
+  codici: { standard: "alb-std", premium: "alb-prm" }, soglia_premium: 55000,
   copertine: { standard: [{ valore: "lino", etichetta: "Lino naturale" }, { valore: "metacrilato", etichetta: "Similpelle con foto su metacrilato" }] },
 };
 const vuoto: RigaAlbum = {
@@ -11,12 +11,13 @@ const vuoto: RigaAlbum = {
 };
 
 describe("tipoAlbum", () => {
-  it("scheda, poi scelte, poi importo", () => {
+  it("scheda, poi importo (sotto 550 Standard), poi scelte", () => {
     expect(tipoAlbum({ tipo: "premium", scelte: ["alb-std"], importoAlbum: 30000, blocco })).toBe("premium");
-    expect(tipoAlbum({ tipo: null, scelte: ["alb-std"], importoAlbum: 90000, blocco })).toBe("standard");
-    expect(tipoAlbum({ tipo: null, scelte: ["alb-prm"], importoAlbum: 30000, blocco })).toBe("premium");
-    expect(tipoAlbum({ tipo: null, scelte: [], importoAlbum: 45000, blocco })).toBe("standard");
-    expect(tipoAlbum({ tipo: null, scelte: [], importoAlbum: 50000, blocco })).toBe("premium");
+    expect(tipoAlbum({ tipo: null, scelte: ["alb-prm"], importoAlbum: 50000, blocco })).toBe("standard");
+    expect(tipoAlbum({ tipo: null, scelte: [], importoAlbum: 54999, blocco })).toBe("standard");
+    expect(tipoAlbum({ tipo: null, scelte: ["alb-std"], importoAlbum: 55000, blocco })).toBe("premium");
+    expect(tipoAlbum({ tipo: null, scelte: ["alb-std"], importoAlbum: 0, blocco })).toBe("standard");
+    expect(tipoAlbum({ tipo: null, scelte: [], importoAlbum: 0, blocco })).toBe("premium");
   });
 });
 
