@@ -254,8 +254,9 @@ export function leggiWorkbook(buf: ArrayBuffer | Uint8Array, oggi = new Date().t
 
       const importoAlbum = importi.find((x) => x.voce === "album")?.importo ?? 0;
       const album = importoAlbum > 0 || !vuota(p?.["ALBUM APPROVATO"]) || !vuota(p?.["ALBUM FILE"]) ? {
-        tipo: scelte.includes("alb-std") ? "standard" : scelte.includes("alb-prm") ? "premium"
-          : importoAlbum > 0 ? (importoAlbum <= 45000 ? "standard" : "premium") : null,
+        // stessa regola dell'app: sotto 550 € Standard, da 550 € Premium (vedi blocco album-sposi)
+        tipo: importoAlbum > 0 ? (importoAlbum < 55000 ? "standard" : "premium")
+          : scelte.includes("alb-std") ? "standard" : scelte.includes("alb-prm") ? "premium" : null,
         cartella: testo(p?.["ALBUM FILE"]) || null,
         approvato_il: dataIso(p?.["ALBUM APPROVATO"]),
         note: testo(p?.["ALBUM NOTE"]) || null,
@@ -288,6 +289,9 @@ export function leggiWorkbook(buf: ArrayBuffer | Uint8Array, oggi = new Date().t
         videomaker: video || null,
         memory_box_consegnata: vero(w["MB"]) && importi.some((x) => x.voce === "memory_box"),
         recensione_ricevuta: vero(w["REC"]),
+        // date degli automatismi del foglio: scritte dopo l'importazione (vedi importa)
+        foto_consegnate_il: dataIso(p?.["CONSEGNA FOTO"]),
+        album_proposto_il: dataIso(p?.["PROMEMORIA ALBUM"]),
         sposi, preventivo, importi,
         incassato: euro(w["SALDO"]) ?? 0,
         album,

@@ -64,5 +64,29 @@
     "oggetto": "Il vostro preventivo per il Matrimonio del {DATA_LUNGA}",
     "corpo_mail": "Ciao {NOMI},\nvi scrivo per sapere se avete avuto modo di guardare il preventivo per il vostro Matrimonio del {DATA_LUNGA}. Il link è sempre lo stesso:\n[!Guarda il preventivo]({LINK})\n\nSe avete domande, volete cambiare qualcosa o vi serve un chiarimento, sono qui: possiamo anche sentirci al telefono o vederci per un incontro conoscitivo, senza alcun impegno da parte vostra.\n\nA presto\n{FIRMA}",
     "corpo_whatsapp": "Ciao {NOME}, come va? Avete avuto modo di guardare il preventivo per il Matrimonio del {DATA_LUNGA}? Se avete domande o volete cambiare qualcosa sono qui, possiamo anche sentirci al telefono. Il link è sempre questo >> {LINK}"
+  },
+  {
+    "chiave": "album",
+    "oggetto": "Il vostro Album - Come scegliere le foto",
+    "corpo_mail": "Ciao {NOMI},\nè arrivato il momento del vostro Album! Nella vostra pagina trovate le istruzioni passo passo per scegliere le foto e la copertina.\n\n[!Istruzioni nella vostra pagina]({LINK_ALBUM})\n{GALLERIA}\nPer qualsiasi dubbio scrivetemi pure.\n\nA presto\n{FIRMA}",
+    "corpo_whatsapp": null
+  },
+  {
+    "chiave": "album_pagina",
+    "oggetto": "Il vostro Album - Come scegliere le foto",
+    "corpo_mail": "Ciao {NOMI},\nè arrivato il momento del vostro Album!\n\nVi ho preparato una pagina dedicata a voi: trovate il riepilogo dei servizi e dei pagamenti, i vostri dati e, soprattutto, le istruzioni passo passo per scegliere le foto e la copertina. Nella stessa pagina vedrete poi l'anteprima dell'impaginazione, da approvare o da correggere. Vi consiglio di salvarla tra i preferiti.\n\n[!Apri la vostra pagina]({LINK_ALBUM})\n{GALLERIA}\nPer qualsiasi dubbio scrivetemi pure.\n\nA presto\n{FIRMA}",
+    "corpo_whatsapp": null
+  },
+  {
+    "chiave": "album_galleria",
+    "oggetto": null,
+    "corpo_mail": "[!Vai alla vostra galleria UpYourShoot]({URL})\n",
+    "corpo_whatsapp": null
+  },
+  {
+    "chiave": "album_proposta",
+    "oggetto": "Il vostro Album",
+    "corpo_mail": "Ciao {NOMI},\nspero che le foto vi stiano piacendo! Vi scrivo perché siete ancora in tempo per realizzare l'album: 30x30, nella versione Standard o Premium (con copertina in cotone personalizzabile nel colore e nei testi), e per i genitori le repliche 20x20.\nPotete sceglierlo direttamente dalla vostra pagina:\n[!Scegliete il vostro Album]({LINK_PROPOSTA})\n\nSe preferite vederne uno dal vivo prima di decidere, organizziamo volentieri un incontro in studio.\n\nA presto\n{FIRMA}",
+    "corpo_whatsapp": null
   }
 ]

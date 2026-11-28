@@ -89,6 +89,7 @@
 .fede .f-tabella td { padding: .7rem 1rem; border-bottom: 1px solid var(--f-bordo); vertical-align: middle; }
 .fede .f-tabella tbody tr:last-child td { border-bottom: 0; }
 .fede .f-tabella tbody tr.f-riga:hover td { background: var(--f-attivo); }
+@media (min-width: 64rem) { .fede .f-tabella-fissa { table-layout: fixed; } }
 .fede .f-tabella .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Elenchi a righe */

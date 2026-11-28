@@ -10,6 +10,8 @@ import { data, ora } from "@/lib/formato";
 import { Paragrafi, Evidenzia, Contratto, Euro, euroTesto } from "./testo";
 import { Preventivo } from "./preventivo";
 import { Piede } from "./piede";
+import { ProponiAlbum, SezioneAlbum } from "./album";
+import { vociAlbum } from "@/lib/sposi/album";
 import { DatiSposi } from "./indirizzi";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +48,8 @@ export default async function PaginaSposi({ params, searchParams }: {
   const intro = p.blocchi.filter((b) => ["mi-presento", "reportage", "come-lavoro"].includes(b.chiave));
   const servizio = p.modo === "preventivo" ? blocco(duo ? "servizio-duo" : "servizio") : blocco("area-sposi");
   const offerta = p.modo === "preventivo" && calcolo.preventivo ? calcolaOfferta(calcolo.listino, calcolo.preventivo) : null;
+  // Album dopo la consegna: prezzi del preventivo (prezzi speciali compresi), senza le regole della pagina congiunta
+  const offertaAlbum = p.propostaAlbum ? vociAlbum(calcolo.listino, calcolo.preventivo) : [];
   const versione = p.preventivo ? `v${String(p.preventivo.versione).padStart(2, "0")}` : "";
   const ricevimento = [p.matrimonio.location, p.matrimonio.luogo].filter(Boolean).join(" - ");
   const datiFissi = (servizio?.dati ?? []) as [string, string][];
@@ -194,6 +198,10 @@ export default async function PaginaSposi({ params, searchParams }: {
         </div></section>
       )}
 
+      {p.propostaAlbum && offertaAlbum.length > 0 && (
+        <ProponiAlbum token={token} testi={p.propostaAlbum} voci={offertaAlbum} />
+      )}
+      {p.album && <SezioneAlbum token={token} a={p.album} galleria={p.matrimonio.galleriaSposi} solaLettura={p.solaLettura} />}
       {(p.modo === "sposi" || p.modo === "chiuso") && <AreaSposi p={p} />}
       {(p.modo === "sposi" || p.modo === "chiuso") && (
         <DatiSposi token={token} modificabile={p.modo === "sposi"} sposi={p.sposi} />
@@ -210,7 +218,7 @@ const ORDINE = ["servizio", "prewedding", "secondo_operatore", "photo_booth", "m
 /** Righe del riepilogo: quelle salvate alla conferma (con omaggi e prezzi di allora), altrimenti gli importi per voce. */
 function righeServizi(p: Pagina): { voce: string; importo: number }[] {
   const salvate = p.preventivo?.righe ?? [];
-  if (salvate.length) return salvate;
+  if (salvate.length) return [...salvate, ...p.righeAlbum];
   const pos = (v: string) => (ORDINE.indexOf(v) + 1 || 99);
   return [...p.importi].sort((a, b) => pos(a.voce) - pos(b.voce)).map((x) => ({ voce: VOCI[x.voce] ?? x.voce, importo: x.importo }));
 }

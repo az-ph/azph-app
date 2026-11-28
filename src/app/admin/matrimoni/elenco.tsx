@@ -59,19 +59,21 @@ export function ElencoMatrimoni({ elenco, oggi }: { elenco: VoceElenco[]; oggi: 
         <section key={g.titolo} className="mb-8">
           <h2 className="text-sm font-semibold mb-3">{g.titolo} <span className="text-tenue font-normal">· {g.voci.length}</span></h2>
           <div className="f-carta overflow-x-auto">
-            <table className="f-tabella">
+            <table className="f-tabella f-tabella-fissa">
+              {/* stesse larghezze in ogni gruppo: le colonne restano allineate tra le tabelle */}
+              <colgroup className="hidden lg:table-column-group"><col style={{ width: "25%" }} /><col style={{ width: "12%" }} /><col style={{ width: "24%" }} /><col style={{ width: "21%" }} /><col style={{ width: "8%" }} /><col style={{ width: "10%" }} /></colgroup>
               <thead><tr><th>Sposi</th><th>Data</th><th className="hidden sm:table-cell">Location</th><th>Stato</th><th>Pagina</th><th className="hidden md:table-cell text-right">Codice</th></tr></thead>
               <tbody>
                 {g.voci.map((m) => {
                   const gg = m.data ? Math.round((Date.parse(m.data) - Date.parse(oggi)) / 86400000) : null;
                   return (
                     <tr key={m.id} className="f-riga relative cursor-pointer">
-                      <td className="font-medium"><Link href={`/admin/matrimoni/${m.id}`} className="hover:underline underline-offset-4 after:absolute after:inset-0">{m.nomi || "Senza nomi"}</Link></td>
+                      <td className="font-medium truncate"><Link href={`/admin/matrimoni/${m.id}`} className="hover:underline underline-offset-4 after:absolute after:inset-0">{m.nomi || "Senza nomi"}</Link></td>
                       <td className="whitespace-nowrap">
                         <span className="tabular-nums">{data(m.data) || "—"}</span>
                         {m.data && <span className="block text-xs text-tenue">{dataEstesa(m.data).split(" ")[0]}{gg != null && gg >= 0 && gg <= 60 ? ` · tra ${gg} gg` : ""}</span>}
                       </td>
-                      <td className="hidden sm:table-cell text-tenue max-w-[18rem] truncate">{m.location || "—"}</td>
+                      <td className="hidden sm:table-cell text-tenue truncate" title={m.location || undefined}>{m.location || "—"}</td>
                       <td>
                         <PillStato stato={m.stato} />
                         {m.senzaPreventivo && <span className="ml-2 text-xs text-errore">senza preventivo</span>}

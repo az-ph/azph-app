@@ -111,7 +111,7 @@
     "banda": true,
     "sopratitolo": "Opzionale",
     "titolo": "Wedding album",
-    "corpo": "Per **dare forma alle emozioni** del vostro giorno speciale, una volta condivisi con voi gli scatti, avrete la possibilità di realizzare il vostro Album di Matrimonio.\n\nL’Album ha dimensioni **30x30 cm**, con un massimo di **50 tavole** Layflat stampate (100 pagine, adatto ad accogliere 90-140 foto) ad apertura panoramica 180°, con **copertina in cotone naturale** completamente personalizzabile e confezione abbinata. Per i genitori potete aggiungere una **replica 20x20**.\n\nPotete sceglierlo ora oppure **decidere anche dopo il Matrimonio**, quando avrete visto le foto.",
+    "corpo": "Per **dare forma alle emozioni** del vostro giorno speciale, una volta condivisi con voi gli scatti, avrete la possibilità di realizzare il vostro Album di Matrimonio.\n\nL’Album ha dimensioni **30x30 cm**, con un massimo di **50 tavole** Layflat stampate (100 pagine, adatto ad accogliere 90-140 foto) ad apertura panoramica 180°, con confezione abbinata. Copertina in **cotone naturale** completamente personalizzabile nel colore e nei testi per il Premium, in **lino o similpelle** per lo Standard. Per i genitori potete aggiungere una **replica 20x20**.\n\nPotete sceglierlo ora oppure **decidere anche dopo il Matrimonio**, quando avrete visto le foto.",
     "lista": [
       "**Scelta** delle foto e della finitura della copertina - condivisa con gli Sposi",
       "**Predisposizione e impaginazione** Album",
@@ -177,5 +177,89 @@
         ""
       ]
     ]
+  },
+  {
+    "chiave": "album-sposi",
+    "ordine": 90,
+    "quando": "album",
+    "sopratitolo": "Album",
+    "titolo": "Il vostro Album",
+    "intro": "È il momento del vostro Album! Ecco come procedere:",
+    "passi": {
+      "premium": [
+        [
+          "Selezione",
+          "Nella vostra galleria UpYourShoot segnate con il cuore le foto che volete nell'album, indicativamente tra 90 e 140. Quando avete finito indicatelo qui sotto."
+        ],
+        [
+          "Copertina e box",
+          "Indicatemi il colore da utilizzare per la stampa. Se avete il codice di quello usato per le grafiche del Matrimonio, meglio ancora!"
+        ],
+        [
+          "Impaginazione",
+          "Preparo io l'impaginato e ve lo mostro in anteprima qui, in questa pagina: potete approvarlo o chiedermi modifiche."
+        ],
+        [
+          "Stampa",
+          "Dopo il vostro ok invio in stampa: la consegna avviene in circa 3 settimane."
+        ]
+      ],
+      "standard": [
+        [
+          "Selezione",
+          "Nella vostra galleria UpYourShoot segnate con il cuore le foto che volete nell'album, indicativamente tra 90 e 140. Quando avete finito indicatelo qui sotto."
+        ],
+        [
+          "Copertina e box",
+          "Potete scegliere tra lino naturale, similpelle bianca o similpelle bianca con una foto su metacrilato (in questo caso indicatemi quale foto usare). La box è coordinata alla copertina: con similpelle e metacrilato è tutta bianca."
+        ],
+        [
+          "Impaginazione",
+          "Preparo io l'impaginato e ve lo mostro in anteprima qui, in questa pagina: potete approvarlo o chiedermi modifiche."
+        ],
+        [
+          "Stampa",
+          "Dopo il vostro ok invio in stampa: la consegna avviene in circa 3 settimane."
+        ]
+      ]
+    },
+    "copertine": {
+      "standard": [
+        {
+          "valore": "lino",
+          "etichetta": "Lino naturale"
+        },
+        {
+          "valore": "similpelle",
+          "etichetta": "Similpelle bianca"
+        },
+        {
+          "valore": "metacrilato",
+          "etichetta": "Similpelle bianca con foto su metacrilato",
+          "nota": "Quale foto? Indicate il numero o il nome del file"
+        }
+      ],
+      "premium": [
+        {
+          "valore": "colore",
+          "etichetta": "Colore per copertina e box",
+          "nota": "Colore o codice usato per le grafiche del Matrimonio"
+        }
+      ]
+    },
+    "genitori": "Per gli album dei genitori (repliche 20x20) useremo la stessa impaginazione: non serve una selezione separata.",
+    "studio": "Se volete vedere un album dal vivo prima di scegliere, possiamo organizzare un incontro in studio.",
+    "codici": {
+      "standard": "alb-std",
+      "premium": "alb-prm"
+    },
+    "proposta": {
+      "sopratitolo": "Wedding album",
+      "titolo": "Il vostro Album",
+      "mesi": 12,
+      "giorni_promemoria": 14,
+      "corpo": "Siete ancora in tempo per **dare forma alle emozioni** del vostro giorno con l’Album di Matrimonio.\n\nL’Album ha dimensioni **30x30 cm**, con un massimo di **50 tavole** Layflat stampate (100 pagine, adatto ad accogliere 90-140 foto) ad apertura panoramica 180°, con confezione abbinata. Copertina in **cotone naturale** personalizzabile nel colore e nei testi per il Premium, in **lino o similpelle** per lo Standard. Per i genitori potete aggiungere una **replica 20x20**, con la stessa impaginazione.\n\nSceglietelo qui sotto: troverete subito in questa pagina le istruzioni per la selezione delle foto e la copertina. L’Album si salda alla consegna. Se preferite vederne uno dal vivo prima di decidere, organizziamo volentieri un incontro in studio."
+    },
+    "soglia_premium": 55000
   }
 ]

@@ -3,12 +3,17 @@ import { supabaseSessione } from "@/lib/supabase/sessione";
 import { data, dataEstesa, euroBreve } from "@/lib/formato";
 import { STATI, nomiBrevi } from "@/lib/admin/stati";
 import { GIORNI_FOLLOWUP, GIORNI_KICKOFF, GIORNI_PROSSIMI, cosaFare, giorniTra, storiaContatti, type MatrimonioOggi } from "@/lib/admin/oggi";
-import { salvaKickoff } from "./matrimoni/azioni";
+import { salvaKickoff, segnaAlbumProposto } from "./matrimoni/azioni";
 import { Modulo } from "./matrimoni/modulo";
 import { Kpi, PillStato, Testata } from "./ui";
+import { STATI_PROPOSTA, faseAlbum, piuMesi, type BloccoAlbum, type RigaAlbum } from "@/lib/sposi/album";
 
 const APERTI = STATI.map((s) => s.valore).filter((v) => v.startsWith("qte") || v.startsWith("wdg"));
 const NOME_RATA = { acconto: "Acconto", saldo: "Saldo", album: "Album" } as const;
+/** "aaaa-mm-gg" + n giorni */
+const piuGiorni = (d: string, n: number) => new Date(Date.parse(d + "T12:00:00Z") + n * 86400000).toISOString().slice(0, 10);
+
+const FASE_MIA = ["selezione", "modifiche"];
 const CANALE: Record<string, string> = { mail: "mail", whatsapp: "WhatsApp", telefono: "telefono", persona: "di persona", altro: "altro" };
 
 export default async function Oggi() {
@@ -19,12 +24,14 @@ export default async function Oggi() {
   if (error) return <p className="text-errore">Il database non risponde: {error.message}</p>;
   const ids = (righe ?? []).map((m) => m.id);
   const idsPreventivi = (righe ?? []).filter((m) => m.stato.startsWith("qte")).map((m) => m.id);
-  const [importi, incassi, aperture, contatti, invii] = await Promise.all([
+  const idsAlbum = (righe ?? []).filter((m) => m.stato === "wdg_album_todo" || m.stato === "wdg_album").map((m) => m.id);
+  const [importi, incassi, aperture, contatti, invii, album] = await Promise.all([
     supabase.from("importo").select("matrimonio_id, voce, importo").in("matrimonio_id", ids),
     supabase.from("pagamento").select("matrimonio_id, tipo, importo, pagato_il").in("matrimonio_id", ids),
     supabase.from("evento_pagina").select("matrimonio_id, avvenuto_il").eq("tipo", "apertura").in("matrimonio_id", idsPreventivi),
     supabase.from("contatto").select("matrimonio_id, tipo, canale, avvenuto_il, prossimo_il").in("matrimonio_id", idsPreventivi),
     supabase.from("invio").select("matrimonio_id, modello, canale, inviato_il").eq("stato", "inviato").in("modello", ["preventivo", "aggiornato", "duo", "follow_up"]).in("matrimonio_id", idsPreventivi),
+    supabase.from("album").select("matrimonio_id, tipo, selezione_il, copertina, copertina_nota, note_sposi, anteprima_path, anteprima_nome, anteprima_il, approvato_il, modifiche_il, note_modifiche").in("matrimonio_id", idsAlbum),
   ]);
 
   const elenco: MatrimonioOggi[] = (righe ?? []).map((m) => {
@@ -47,7 +54,26 @@ export default async function Oggi() {
   });
   const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
   const f = cosaFare(elenco, oggi);
+  // Album da proporre: foto consegnate da almeno N giorni, senza album, proposta non ancora fatta
+  const { data: blk } = await supabase.from("blocco_pagina").select("dati").eq("chiave", "album-sposi").maybeSingle();
+  const prop = (blk?.dati as BloccoAlbum | null)?.proposta;
+  const daProporre: { id: string; nomi: string; consegna: string }[] = [];
+  if (prop?.mesi) {
+    const { data: cand } = await supabase.from("matrimonio")
+      .select("id, codice_id, foto_consegnate_il, sposi:sposo ( ordine, nome ), importo ( voce, importo )")
+      .in("stato", STATI_PROPOSTA).eq("esempio", false).is("album_proposto_il", null)
+      .lte("foto_consegnate_il", piuGiorni(oggi, -(prop.giorni_promemoria ?? 14))).gte("foto_consegnate_il", piuMesi(oggi, -prop.mesi));
+    for (const m of cand ?? []) {
+      if ((m.importo as { voce: string; importo: number }[]).some((x) => x.voce === "album" && x.importo > 0)) continue;
+      daProporre.push({ id: m.id, nomi: nomiBrevi(m.sposi as { ordine: number; nome: string | null }[]) || m.codice_id, consegna: m.foto_consegnate_il! });
+    }
+  }
   const daIncassare = f.pagamenti.reduce((t, p) => t + p.manca, 0);
+  // Album: chi aspetta qualcosa da me (impaginare, nuova versione) e chi aspetta gli Sposi
+  const albumDaSeguire = elenco.filter((m) => idsAlbum.includes(m.id)).map((m) => {
+    const a = (album.data ?? []).find((x) => x.matrimonio_id === m.id) as RigaAlbum | undefined;
+    return { m, a, fase: faseAlbum(m.stato, a ?? null) };
+  }).sort((x, y) => Number(FASE_MIA.includes(y.fase ?? "")) - Number(FASE_MIA.includes(x.fase ?? "")));
   const scheda = (m: MatrimonioOggi, tab?: string) => `/admin/matrimoni/${m.id}${tab ? `?tab=${tab}` : ""}`;
   const ora = Number(new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
 
@@ -114,6 +140,28 @@ export default async function Oggi() {
                 destra={<span className="text-xs text-avviso whitespace-nowrap">{st.prossimo ? `da risentire dal ${data(st.prossimo)}` : `da ${giorniTra(st.ultimo!.il, oggi)} gg`}</span>} />
             );
           })}
+        </Sezione>
+
+        <Sezione titolo="Album" vuoto="Nessun album in corso.">
+          {albumDaSeguire.map(({ m, a, fase }) => (
+            <Riga key={m.id} href={scheda(m, "album")} nomi={m.nomi}
+              dettaglio={fase === "selezione" ? `selezione ricevuta il ${data(a?.selezione_il ?? null)}`
+                : fase === "modifiche" ? `modifiche chieste il ${data(a?.modifiche_il ?? null)}`
+                : fase === "anteprima" ? `anteprima del ${data(a?.anteprima_il ?? null)}` : "istruzioni inviate"}
+              destra={<span className={`text-xs whitespace-nowrap ${FASE_MIA.includes(fase ?? "") ? "text-avviso" : "text-tenue"}`}>
+                {fase === "selezione" ? "da impaginare" : fase === "modifiche" ? "nuova versione" : "attesa Sposi"}</span>} />
+          ))}
+        </Sezione>
+
+        <Sezione titolo="Album da proporre" vuoto="Nessun album da proporre.">
+          {daProporre.map((m) => (
+            <li key={m.id} className="items-center">
+              <span className="min-w-0"><Link href={`/admin/matrimoni/${m.id}?tab=messaggi`} className="font-medium hover:underline underline-offset-4">{m.nomi}</Link>
+                <span className="block text-xs text-tenue">foto consegnate il {data(m.consegna)} · mail &quot;Proposta album&quot; in Messaggi</span></span>
+              <form action={segnaAlbumProposto}><input type="hidden" name="matrimonio_id" value={m.id} />
+                <button className="f-btn text-xs" title="Proposta fatta fuori dall'app, o da non fare">Fatto</button></form>
+            </li>
+          ))}
         </Sezione>
 
         <Sezione titolo="Prossimi Matrimoni" vuoto={`Nessun Matrimonio nei prossimi ${GIORNI_PROSSIMI} giorni.`}>

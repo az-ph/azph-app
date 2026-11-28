@@ -3,6 +3,9 @@ import { supabaseSessione } from "@/lib/supabase/sessione";
 import { STATI, nomiBrevi } from "@/lib/admin/stati";
 import { impegniNelGiorno, type Impegno } from "./impegni";
 
+/** Fine di un servizio iniziato il giorno prima che non occupa ancora la giornata. */
+const FINE_NOTTE = "06:00";
+
 export type ControlloData = {
   matrimoni: { id: string; codice: string; nomi: string; stato: string }[];
   impegni: Impegno[];
@@ -16,7 +19,8 @@ export type ControlloData = {
 export async function controllaData(iso: string, escludi?: string): Promise<ControlloData> {
   const supabase = await supabaseSessione();
   const q = supabase.from("matrimonio").select("id, codice_id, stato, sposi:sposo ( ordine, nome )")
-    .or(`data_inizio.eq.${iso},and(data_inizio.lte.${iso},data_fine.gte.${iso})`)
+    // Un servizio che finisce dopo mezzanotte (entro le 6) non occupa il giorno dopo
+    .or(`data_inizio.eq.${iso},and(data_inizio.lt.${iso},data_fine.gt.${iso}),and(data_inizio.lt.${iso},data_fine.eq.${iso},ora_fine.gt.${FINE_NOTTE})`)
     .in("stato", STATI.map((x) => x.valore).filter((v) => v.startsWith("qte") || v.startsWith("wdg"))).eq("esempio", false);
   const [{ data: righe }, cal] = await Promise.all([escludi ? q.neq("id", escludi) : q, leggiCalendario(iso)]);
   return {

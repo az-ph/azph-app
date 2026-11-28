@@ -34,3 +34,17 @@ describe("messaggi", () => {
     expect(numeroWhatsapp("ciao")).toBeNull();
   });
 });
+
+describe("album", () => {
+  it("galleria solo se c'è il link, suggerito in Album da fare", () => {
+    const modelli = [
+      { chiave: "album", oggetto: "Album", corpo_mail: "Ciao {NOMI}\n[!Pagina]({LINK_ALBUM})\n{GALLERIA}fine", corpo_whatsapp: null },
+      { chiave: "album_galleria", oggetto: null, corpo_mail: "[!Galleria]({URL})\n", corpo_whatsapp: null },
+    ];
+    const conLink = preparaMessaggi(modelli, { NOMI: "A e B", LINK_ALBUM: "https://x/t#azp-anteprima" }, { omaggi: [], video: false, firma: "Ale", galleria: "https://uys/g" });
+    expect(conLink.find((m) => m.chiave === "album")?.mail).toContain("[!Galleria](https://uys/g)");
+    const senza = preparaMessaggi(modelli, { NOMI: "A e B", LINK_ALBUM: "https://x/t" }, { omaggi: [], video: false, firma: "Ale" });
+    expect(senza.find((m) => m.chiave === "album")?.mail).not.toContain("Galleria");
+    expect(messaggioSuggerito({ confermato: true, inviato: true, congiunta: false, stato: "wdg_album_todo" })).toBe("album");
+  });
+});

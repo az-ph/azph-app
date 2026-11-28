@@ -34,6 +34,14 @@ export async function importa(_prec: EsitoImport, form: FormData): Promise<Esito
   const supabase = await supabaseSessione();
   const { data, error } = await supabase.rpc("importa_foglio", { dati: letto.dati });
   if (error) return { errore: "Importazione annullata, nessun dato scritto: " + error.message, resoconto: letto.resoconto };
+  // Consegna delle foto e proposta dell'album (colonne degli automatismi del foglio)
+  for (const m of letto.dati.matrimoni) {
+    if (!m.foto_consegnate_il && !m.album_proposto_il) continue;
+    // solo i valori presenti nel foglio: non si cancella ciò che l'app ha già segnato
+    const agg = Object.fromEntries((["foto_consegnate_il", "album_proposto_il"] as const).filter((k) => m[k]).map((k) => [k, m[k]]));
+    await supabase.from("matrimonio").update(agg)
+      .eq("codice_id", m.codice_id as string);
+  }
   // Impostazioni, testi della pagina e contratto di AZ-ph (solo se mancano).
   const ist = await supabase.rpc("importa_istanza", { dati: ISTANZA_AZPH });
   if (ist.error) return { errore: "Dati importati, ma impostazioni e testi no: " + ist.error.message, resoconto: letto.resoconto };
