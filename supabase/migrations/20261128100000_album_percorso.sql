@@ -1,3 +1,4 @@
+-- Rinominata da 20261125090000: era più vecchia dell'ultima migrazione applicata (20261125100000) e il push la rifiutava. Mai applicata prima.
 -- Percorso dell'album nella pagina Sposi: selezione e copertina dagli Sposi, anteprima caricata dall'admin,
 -- approvazione o richiesta di modifiche. La tabella album ha già RLS, grant e policy (schema iniziale).
 
