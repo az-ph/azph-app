@@ -286,3 +286,14 @@ export async function segnaAlbumProposto(fd: FormData): Promise<void> {
   await (await supabaseSessione()).from("matrimonio").update({ album_proposto_il: oggi }).eq("id", id.data);
   revalidatePath("/admin");
 }
+
+/** Oggi: recensione chiesta fuori dall'app, oppure già arrivata. */
+export async function segnaRecensione(fd: FormData): Promise<void> {
+  const id = z.string().uuid().safeParse(fd.get("matrimonio_id"));
+  const cosa = z.enum(["chiesta", "arrivata"]).safeParse(fd.get("cosa"));
+  if (!id.success || !cosa.success) return;
+  const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+  await (await supabaseSessione()).from("matrimonio")
+    .update(cosa.data === "chiesta" ? { recensione_chiesta_il: oggi } : { recensione_ricevuta: true, recensione_il: oggi }).eq("id", id.data);
+  revalidatePath("/admin");
+}

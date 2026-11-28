@@ -11,6 +11,7 @@ export const MESSAGGI = [
   { chiave: "album", titolo: "Album", segnaInviato: false },
   { chiave: "album_pagina", titolo: "Album + pagina", segnaInviato: false },
   { chiave: "album_proposta", titolo: "Proposta album", segnaInviato: false },
+  { chiave: "recensione", titolo: "Recensione", segnaInviato: false },
 ] as const;
 export type ChiaveMessaggio = (typeof MESSAGGI)[number]["chiave"];
 export const CHIAVI_MESSAGGIO = MESSAGGI.map((m) => m.chiave) as [ChiaveMessaggio, ...ChiaveMessaggio[]];
@@ -49,7 +50,8 @@ export function preparaMessaggi(modelli: Modello[], valori: Record<string, strin
 }
 
 /** Messaggio proposto all'apertura della scheda, in base a dove siamo con il preventivo. */
-export function messaggioSuggerito(p: { confermato: boolean; inviato: boolean; congiunta: boolean; stato?: string; propostaAlbum?: boolean }): ChiaveMessaggio {
+export function messaggioSuggerito(p: { confermato: boolean; inviato: boolean; congiunta: boolean; stato?: string; propostaAlbum?: boolean; recensione?: boolean }): ChiaveMessaggio {
+  if (p.recensione) return "recensione";
   if (p.stato === "wdg_album_todo") return "album";
   if (p.propostaAlbum) return "album_proposta";
   if (p.confermato) return "sposi";

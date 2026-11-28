@@ -88,5 +88,11 @@
     "oggetto": "Il vostro Album",
     "corpo_mail": "Ciao {NOMI},\nspero che le foto vi stiano piacendo! Vi scrivo perché siete ancora in tempo per realizzare l'album: 30x30, nella versione Standard o Premium (con copertina in cotone personalizzabile nel colore e nei testi), e per i genitori le repliche 20x20.\nPotete sceglierlo direttamente dalla vostra pagina:\n[!Scegliete il vostro Album]({LINK_PROPOSTA})\n\nSe preferite vederne uno dal vivo prima di decidere, organizziamo volentieri un incontro in studio.\n\nA presto\n{FIRMA}",
     "corpo_whatsapp": null
+  },
+  {
+    "chiave": "recensione",
+    "oggetto": "Due righe sul vostro Matrimonio?",
+    "corpo_mail": "Ciao {NOMI},\nse vi va di lasciarmi due righe sulla vostra esperienza, per me è un aiuto enorme: è così che altri Sposi mi trovano.\n\nVi chiedo un piccolo favore in più: scrivete la recensione una volta sola, poi copiatela e incollatela anche nel secondo sito. Ci vuole un minuto in più.\n\n[!⭐ Recensione su Matrimonio.com](https://www.matrimonio.com/shared/rate/170111)\n[!⭐ Recensione su Google](https://g.page/r/CWMFQtNNs3YvEBM/review)\n\nGrazie di cuore\n{FIRMA}",
+    "corpo_whatsapp": "Ciao {NOMI}, se vi va di lasciarmi due righe sulla vostra esperienza, per me è un aiuto enorme: è così che altri Sposi mi trovano.\n\nVi chiedo un piccolo favore in più: scrivete la recensione una volta sola, poi copiatela e incollatela anche nel secondo sito. Ci vuole un minuto in più.\n\n⭐ Matrimonio.com ➡️ https://www.matrimonio.com/shared/rate/170111\n⭐ Google ➡️ https://g.page/r/CWMFQtNNs3YvEBM/review\n\nGrazie di cuore\n{FIRMA}"
   }
 ]

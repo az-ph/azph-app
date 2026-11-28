@@ -24,6 +24,11 @@ const Invio = z.object({
 
 /** Dopo l'invio del preventivo: segnato come inviato, e lo stato passa da "Da contattare" a "Preventivo". */
 async function segnaPreventivoInviato(mid: string, chiave: ChiaveMessaggio) {
+  if (chiave === "recensione") {
+    const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+    await (await supabaseSessione()).from("matrimonio").update({ recensione_chiesta_il: oggi }).eq("id", mid).is("recensione_chiesta_il", null);
+    return;
+  }
   if (chiave === "album_proposta") {
     // La proposta dell'album esce dall'elenco di Oggi
     const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
