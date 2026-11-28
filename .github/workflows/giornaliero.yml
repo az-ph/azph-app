@@ -1,0 +1,41 @@
+name: Controllo giornaliero
+
+# Ogni mattina alle 6 (ora di Roma): cambi di stato automatici e mail di riepilogo al titolare.
+# GitHub usa l'ora UTC: gira alle 4 e alle 5 UTC, lo script parte solo dalle 6 di Roma e una volta al giorno.
+# Le chiavi stanno nei segreti dell'ambiente "produzione". Nei log solo numeri, niente nomi.
+on:
+  schedule:
+    - cron: "0 4 * * *"
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+    inputs:
+      forza:
+        description: "Rifai il controllo anche se oggi è già stato fatto"
+        type: boolean
+        default: false
+
+concurrency:
+  group: giornaliero
+  cancel-in-progress: false
+
+jobs:
+  controlla:
+    runs-on: ubuntu-latest
+    environment: produzione
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      APP_URL: ${{ vars.APP_URL }}
+      FORZA: ${{ inputs.forza && '1' || '0' }}
+      MANUALE: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Controllo
+        run: npx tsx scripts/giornaliero.ts

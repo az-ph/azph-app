@@ -19,6 +19,7 @@ import { stileDaColori } from "@/lib/mail/testo";
 import { Campo, Riquadro, Spunta, inp } from "../campi";
 import { supabaseServizio } from "@/lib/supabase/server";
 import { BUCKET_ALBUM } from "@/lib/sposi/dati";
+import { STATI_RECENSIONE } from "@/lib/admin/carica-oggi";
 import { STATI_PROPOSTA, faseAlbum, tipoAlbum, testoCopertina, type BloccoAlbum, type RigaAlbum } from "@/lib/sposi/album";
 import { salvaAlbum } from "../album-azioni";
 import { CaricaAnteprima } from "../carica-anteprima";
@@ -43,7 +44,7 @@ export default async function SchedaMatrimonio({ params, searchParams }: Params)
   const supabase = await supabaseSessione();
 
   const [m, sposi, prev, link, listino, location, videomaker, timeline, pagamenti, importi, eventi, fontiUsate, imp] = await Promise.all([
-    supabase.from("matrimonio").select("id, codice_id, stato, fonte, kickoff_il, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, link_upyourshoot, foto_consegnate_il, album_proposto_il, pagina_congiunta, videomaker_id, esempio").eq("id", id).maybeSingle(),
+    supabase.from("matrimonio").select("id, codice_id, stato, fonte, kickoff_il, data_inizio, data_fine, ora_inizio, ora_fine, location_id, preparativi, formula_id, note_private, galleria_url, copertina_url, link_upyourshoot, foto_consegnate_il, album_proposto_il, recensione_ricevuta, recensione_chiesta_il, pagina_congiunta, videomaker_id, esempio").eq("id", id).maybeSingle(),
     supabase.from("sposo").select("ordine, nome, telefono, email, codice_fiscale, indirizzo, indirizzo_preparativi, consenso_promo").eq("matrimonio_id", id).order("ordine"),
     supabase.from("preventivo").select("id, versione, opzioni, prezzi_speciali, preselezione, scelte, totale, inviato_il, confermato_il, righe_confermate, note_cliente").eq("matrimonio_id", id).order("versione", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("link_sposi").select("token").eq("matrimonio_id", id).is("revocato_il", null).order("creato_il", { ascending: false }).limit(1).maybeSingle(),
@@ -480,7 +481,7 @@ function SchedaPagamenti({ mid, dataMatrimonio, importi, incassi }: {
 
 async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlSposi, importoAlbum }: {
   importoAlbum: number;
-  mat: { id: string; data_inizio: string | null; formula_id: string | null; pagina_congiunta: boolean; videomaker_id: string | null; link_upyourshoot: string | null; stato: string };
+  mat: { id: string; data_inizio: string | null; formula_id: string | null; pagina_congiunta: boolean; videomaker_id: string | null; link_upyourshoot: string | null; stato: string; foto_consegnate_il: string | null; recensione_ricevuta: boolean; recensione_chiesta_il: string | null };
   sposi: { ordine: number; nome: string | null; email: string | null; telefono: string | null }[];
   prev: { versione: number; opzioni: unknown; inviato_il: string | null; confermato_il: string | null } | null;
   listinoRighe: RigaListino[]; videomaker: { id: string; nome: string; codice: string | null; telefono: string | null }[]; urlSposi: string | null;
@@ -533,7 +534,8 @@ async function SchedaMessaggi({ mat, sposi, prev, listinoRighe, videomaker, urlS
   return (
     <div className="flex flex-col gap-4">
     <Messaggi mid={mat.id} pronti={pronti} persone={persone} firma={firma} stile={stileDaColori(imp.data?.colori as Record<string, string> | null)}
-      suggerito={messaggioSuggerito({ confermato: !!prev?.confermato_il, inviato: !!prev?.inviato_il, congiunta: mat.pagina_congiunta, stato: mat.stato, propostaAlbum: STATI_PROPOSTA.includes(mat.stato) && !importoAlbum })} />
+      suggerito={messaggioSuggerito({ confermato: !!prev?.confermato_il, inviato: !!prev?.inviato_il, congiunta: mat.pagina_congiunta, stato: mat.stato, propostaAlbum: STATI_PROPOSTA.includes(mat.stato) && !importoAlbum,
+        recensione: STATI_RECENSIONE.includes(mat.stato) && !!mat.foto_consegnate_il && !mat.recensione_ricevuta && !mat.recensione_chiesta_il })} />
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         <Riquadro titolo="Segna un contatto" azione={<span className="text-xs text-tenue">telefonate, WhatsApp, incontri, invii fuori dall&apos;app</span>}>
           <Modulo azione={registraContatto} etichetta="Segna">

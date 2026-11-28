@@ -1,79 +1,25 @@
 import Link from "next/link";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { data, dataEstesa, euroBreve } from "@/lib/formato";
-import { STATI, nomiBrevi } from "@/lib/admin/stati";
-import { GIORNI_FOLLOWUP, GIORNI_KICKOFF, GIORNI_PROSSIMI, cosaFare, giorniTra, storiaContatti, type MatrimonioOggi } from "@/lib/admin/oggi";
-import { salvaKickoff, segnaAlbumProposto } from "./matrimoni/azioni";
+import { GIORNI_FOLLOWUP, GIORNI_KICKOFF, GIORNI_PROSSIMI, giorniTra, storiaContatti, type MatrimonioOggi } from "@/lib/admin/oggi";
+import { salvaKickoff, segnaAlbumProposto, segnaRecensione } from "./matrimoni/azioni";
 import { Modulo } from "./matrimoni/modulo";
 import { Kpi, PillStato, Testata } from "./ui";
-import { STATI_PROPOSTA, faseAlbum, piuMesi, type BloccoAlbum, type RigaAlbum } from "@/lib/sposi/album";
+import { caricaOggi, GIORNI_RECENSIONE } from "@/lib/admin/carica-oggi";
 
-const APERTI = STATI.map((s) => s.valore).filter((v) => v.startsWith("qte") || v.startsWith("wdg"));
 const NOME_RATA = { acconto: "Acconto", saldo: "Saldo", album: "Album" } as const;
-/** "aaaa-mm-gg" + n giorni */
-const piuGiorni = (d: string, n: number) => new Date(Date.parse(d + "T12:00:00Z") + n * 86400000).toISOString().slice(0, 10);
 
-const FASE_MIA = ["selezione", "modifiche"];
+const dataOraBreve = (iso: string) => new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(/\//g, ".").replace(", ", " alle ").replace(":", ".");
 const CANALE: Record<string, string> = { mail: "mail", whatsapp: "WhatsApp", telefono: "telefono", persona: "di persona", altro: "altro" };
 
 export default async function Oggi() {
   const supabase = await supabaseSessione();
-  const { data: righe, error } = await supabase.from("matrimonio")
-    .select("id, codice_id, stato, data_inizio, kickoff_il, sposi:sposo ( ordine, nome ), preventivo ( versione, inviato_il, confermato_il )")
-    .in("stato", APERTI).eq("esempio", false);
-  if (error) return <p className="text-errore">Il database non risponde: {error.message}</p>;
-  const ids = (righe ?? []).map((m) => m.id);
-  const idsPreventivi = (righe ?? []).filter((m) => m.stato.startsWith("qte")).map((m) => m.id);
-  const idsAlbum = (righe ?? []).filter((m) => m.stato === "wdg_album_todo" || m.stato === "wdg_album").map((m) => m.id);
-  const [importi, incassi, aperture, contatti, invii, album] = await Promise.all([
-    supabase.from("importo").select("matrimonio_id, voce, importo").in("matrimonio_id", ids),
-    supabase.from("pagamento").select("matrimonio_id, tipo, importo, pagato_il").in("matrimonio_id", ids),
-    supabase.from("evento_pagina").select("matrimonio_id, avvenuto_il").eq("tipo", "apertura").in("matrimonio_id", idsPreventivi),
-    supabase.from("contatto").select("matrimonio_id, tipo, canale, avvenuto_il, prossimo_il").in("matrimonio_id", idsPreventivi),
-    supabase.from("invio").select("matrimonio_id, modello, canale, inviato_il").eq("stato", "inviato").in("modello", ["preventivo", "aggiornato", "duo", "follow_up"]).in("matrimonio_id", idsPreventivi),
-    supabase.from("album").select("matrimonio_id, tipo, selezione_il, copertina, copertina_nota, note_sposi, anteprima_path, anteprima_nome, anteprima_il, approvato_il, modifiche_il, note_modifiche").in("matrimonio_id", idsAlbum),
-  ]);
-
-  const elenco: MatrimonioOggi[] = (righe ?? []).map((m) => {
-    const p = [...(m.preventivo as { versione: number; inviato_il: string | null; confermato_il: string | null }[])].sort((a, b) => b.versione - a.versione)[0];
-    const ap = (aperture.data ?? []).filter((x) => x.matrimonio_id === m.id).map((x) => x.avvenuto_il).sort();
-    return {
-      id: m.id, codice: m.codice_id, stato: m.stato, data: m.data_inizio, kickoff: m.kickoff_il,
-      nomi: nomiBrevi(m.sposi as { ordine: number; nome: string | null }[]) || m.codice_id,
-      preventivo: p ? { inviato: p.inviato_il, confermato: p.confermato_il } : null,
-      aperture: ap.length, ultimaApertura: ap.at(-1) ?? null,
-      importi: Object.fromEntries((importi.data ?? []).filter((x) => x.matrimonio_id === m.id).map((x) => [x.voce, x.importo])),
-      incassi: (incassi.data ?? []).filter((x) => x.matrimonio_id === m.id),
-      contatti: [
-        ...(contatti.data ?? []).filter((x) => x.matrimonio_id === m.id)
-          .map((x) => ({ tipo: x.tipo as "invio" | "follow_up", il: x.avvenuto_il, canale: x.canale, prossimo: x.prossimo_il })),
-        ...(invii.data ?? []).filter((x) => x.matrimonio_id === m.id && x.inviato_il)
-          .map((x) => ({ tipo: (x.modello === "follow_up" ? "follow_up" : "invio") as "invio" | "follow_up", il: x.inviato_il!, canale: x.canale })),
-      ],
-    };
-  });
-  const oggi = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
-  const f = cosaFare(elenco, oggi);
-  // Album da proporre: foto consegnate da almeno N giorni, senza album, proposta non ancora fatta
-  const { data: blk } = await supabase.from("blocco_pagina").select("dati").eq("chiave", "album-sposi").maybeSingle();
-  const prop = (blk?.dati as BloccoAlbum | null)?.proposta;
-  const daProporre: { id: string; nomi: string; consegna: string }[] = [];
-  if (prop?.mesi) {
-    const { data: cand } = await supabase.from("matrimonio")
-      .select("id, codice_id, foto_consegnate_il, sposi:sposo ( ordine, nome ), importo ( voce, importo )")
-      .in("stato", STATI_PROPOSTA).eq("esempio", false).is("album_proposto_il", null)
-      .lte("foto_consegnate_il", piuGiorni(oggi, -(prop.giorni_promemoria ?? 14))).gte("foto_consegnate_il", piuMesi(oggi, -prop.mesi));
-    for (const m of cand ?? []) {
-      if ((m.importo as { voce: string; importo: number }[]).some((x) => x.voce === "album" && x.importo > 0)) continue;
-      daProporre.push({ id: m.id, nomi: nomiBrevi(m.sposi as { ordine: number; nome: string | null }[]) || m.codice_id, consegna: m.foto_consegnate_il! });
-    }
-  }
+  const d = await caricaOggi(supabase);
+  if ("errore" in d) return <p className="text-errore">Il database non risponde: {d.errore}</p>;
+  const { f, daProporre, albumDaSeguire, recensioni, oggi } = d;
+  const { data: log } = await supabase.from("log_job").select("eseguito_il, esito, dettaglio").eq("nome", "controllo_giornaliero").order("eseguito_il", { ascending: false }).limit(1).maybeSingle();
+  const ultimo = log ? { eseguito_il: log.eseguito_il, esito: log.esito, cambi: ((log.dettaglio as { cambi?: unknown[] } | null)?.cambi ?? []) } : null;
   const daIncassare = f.pagamenti.reduce((t, p) => t + p.manca, 0);
-  // Album: chi aspetta qualcosa da me (impaginare, nuova versione) e chi aspetta gli Sposi
-  const albumDaSeguire = elenco.filter((m) => idsAlbum.includes(m.id)).map((m) => {
-    const a = (album.data ?? []).find((x) => x.matrimonio_id === m.id) as RigaAlbum | undefined;
-    return { m, a, fase: faseAlbum(m.stato, a ?? null) };
-  }).sort((x, y) => Number(FASE_MIA.includes(y.fase ?? "")) - Number(FASE_MIA.includes(x.fase ?? "")));
   const scheda = (m: MatrimonioOggi, tab?: string) => `/admin/matrimoni/${m.id}${tab ? `?tab=${tab}` : ""}`;
   const ora = Number(new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
 
@@ -143,12 +89,12 @@ export default async function Oggi() {
         </Sezione>
 
         <Sezione titolo="Album" vuoto="Nessun album in corso.">
-          {albumDaSeguire.map(({ m, a, fase }) => (
+          {albumDaSeguire.map(({ m, a, fase, mia }) => (
             <Riga key={m.id} href={scheda(m, "album")} nomi={m.nomi}
               dettaglio={fase === "selezione" ? `selezione ricevuta il ${data(a?.selezione_il ?? null)}`
                 : fase === "modifiche" ? `modifiche chieste il ${data(a?.modifiche_il ?? null)}`
                 : fase === "anteprima" ? `anteprima del ${data(a?.anteprima_il ?? null)}` : "istruzioni inviate"}
-              destra={<span className={`text-xs whitespace-nowrap ${FASE_MIA.includes(fase ?? "") ? "text-avviso" : "text-tenue"}`}>
+              destra={<span className={`text-xs whitespace-nowrap ${mia ? "text-avviso" : "text-tenue"}`}>
                 {fase === "selezione" ? "da impaginare" : fase === "modifiche" ? "nuova versione" : "attesa Sposi"}</span>} />
           ))}
         </Sezione>
@@ -164,6 +110,21 @@ export default async function Oggi() {
           ))}
         </Sezione>
 
+        <Sezione titolo="Recensioni da chiedere" vuoto="Nessuna recensione da chiedere.">
+          {recensioni.map((m) => (
+            <li key={m.id} className="items-center">
+              <span className="min-w-0"><Link href={`/admin/matrimoni/${m.id}?tab=messaggi`} className="font-medium hover:underline underline-offset-4">{m.nomi}</Link>
+                <span className="block text-xs text-tenue">foto consegnate il {data(m.consegna)} · messaggio &quot;Recensione&quot; in Messaggi</span></span>
+              <span className="flex gap-2">
+                <form action={segnaRecensione}><input type="hidden" name="matrimonio_id" value={m.id} /><input type="hidden" name="cosa" value="chiesta" />
+                  <button className="f-btn text-xs" title="Chiesta fuori dall'app">Chiesta</button></form>
+                <form action={segnaRecensione}><input type="hidden" name="matrimonio_id" value={m.id} /><input type="hidden" name="cosa" value="arrivata" />
+                  <button className="f-btn text-xs" title="Recensione già arrivata">Arrivata</button></form>
+              </span>
+            </li>
+          ))}
+        </Sezione>
+
         <Sezione titolo="Prossimi Matrimoni" vuoto={`Nessun Matrimonio nei prossimi ${GIORNI_PROSSIMI} giorni.`}>
           {f.prossimi.map((m) => {
             const gg = giorniTra(oggi, m.data!);
@@ -174,7 +135,8 @@ export default async function Oggi() {
           })}
         </Sezione>
       </div>
-      <p className="text-xs text-tenue mt-6">Follow-up dopo {GIORNI_FOLLOWUP} giorni senza conferma · acconto a 3 settimane dal Matrimonio · saldo e album per i Matrimoni nello stato Saldo.</p>
+      <p className="text-xs text-tenue mt-6">Follow-up dopo {GIORNI_FOLLOWUP} giorni senza conferma · acconto a 3 settimane dal Matrimonio · saldo e album per i Matrimoni nello stato Saldo · recensione {GIORNI_RECENSIONE} giorni dopo la consegna.
+        {" "}{ultimo ? <>Controllo automatico: {dataOraBreve(ultimo.eseguito_il)}{ultimo.esito !== "ok" ? " (con errori)" : ultimo.cambi.length ? ` (${ultimo.cambi.length} cambi di stato)` : ""}.</> : "Controllo automatico non ancora eseguito."}</p>
     </>
   );
 }
