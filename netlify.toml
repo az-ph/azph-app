@@ -1,3 +1,6 @@
 [build]
   command = "npm run build"
   publish = ".next"
+  # Niente deploy (e niente crediti) quando cambiano solo Action, script o documenti:
+  # exit 0 = salta la build.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude).github' ':(exclude)scripts' ':(exclude)*.md'"
