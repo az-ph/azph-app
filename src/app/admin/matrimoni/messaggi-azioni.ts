@@ -3,8 +3,10 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { sincronizzaAppuntamento } from "@/lib/admin/appuntamento";
 import { sincronizzaMatrimonio } from "@/lib/admin/sincronizza-calendario";
 import { istanteDaRoma } from "@/lib/admin/ora-roma";
+import { STATI } from "@/lib/admin/stati";
 import { supabaseSessione } from "@/lib/supabase/sessione";
 import { componi, stileDaColori } from "@/lib/mail/testo";
 import { inviaMail } from "@/lib/mail/resend";
@@ -96,21 +98,32 @@ const Contatto = z.object({
   nota: z.string().trim().max(500).optional().default(""),
   prossimo_il: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal("")).optional().default(""),
   esito: z.enum(["nessuna_risposta", "positivo", "negativo"]).or(z.literal("")).optional().default(""),
+  appuntamento_il: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/).or(z.literal("")).optional().default(""),
 });
+
+const base = async () => { const h = await headers(); return process.env.URL || `https://${h.get("host") ?? ""}`; };
 
 export async function registraContatto(_: Esito, fd: FormData): Promise<Esito> {
   const r = Contatto.safeParse(Object.fromEntries(fd));
   if (!r.success) return { errore: r.error.issues[0]?.message ?? "Dati non validi." };
   const d = r.data;
   const supabase = await supabaseSessione();
-  const { error } = await supabase.from("contatto").insert({
+  const appuntamento = d.esito === "negativo" ? "" : d.appuntamento_il;
+  const { data: nuovo, error } = await supabase.from("contatto").insert({
     matrimonio_id: d.matrimonio_id, tipo: d.tipo, canale: d.canale, avvenuto_il: istanteDaRoma(d.avvenuto_il),
-    nota: d.nota || null, prossimo_il: d.esito === "negativo" ? null : d.prossimo_il || null, esito: d.esito || null,
-  });
+    nota: d.nota || null, esito: d.esito || null,
+    // l'appuntamento fa da prossimo follow-up, se non ne è indicato un altro
+    prossimo_il: d.esito === "negativo" ? null : d.prossimo_il || appuntamento.slice(0, 10) || null,
+    appuntamento_il: appuntamento ? istanteDaRoma(appuntamento) : null,
+  }).select("id").single();
   if (error) return { errore: error.message };
+  const avviso = appuntamento ? await sincronizzaAppuntamento(nuovo.id, await base()) : null;
   // Riscontro negativo: il Matrimonio si chiude come Perso (e l'eventuale evento in calendario si toglie)
   if (d.esito === "negativo") {
-    await supabase.from("matrimonio").update({ stato: "clo_lost" }).eq("id", d.matrimonio_id).like("stato", "qte_%");
+    // stato è un enum: niente "like", si elencano gli stati di preventivo
+    const { error: e2 } = await supabase.from("matrimonio").update({ stato: "clo_lost" }).eq("id", d.matrimonio_id)
+      .in("stato", STATI.map((x) => x.valore).filter((v) => v.startsWith("qte_")));
+    if (e2) return { errore: `Contatto salvato, ma lo stato non è cambiato: ${e2.message}` };
     const h = await headers();
     await sincronizzaMatrimonio(supabase, d.matrimonio_id, process.env.URL || `https://${h.get("host") ?? ""}`);
     revalidatePath(`/admin/matrimoni/${d.matrimonio_id}`);
@@ -128,14 +141,15 @@ export async function registraContatto(_: Esito, fd: FormData): Promise<Esito> {
   if (d.tipo === "follow_up") await supabase.from("matrimonio").update({ stato: "qte_contatto" }).eq("id", d.matrimonio_id).eq("stato", "qte_to_contact");
   revalidatePath(`/admin/matrimoni/${d.matrimonio_id}`);
   revalidatePath("/admin");
-  return { ok: true };
+  return avviso ? { errore: avviso } : { ok: true };
 }
 
 export async function eliminaContatto(fd: FormData): Promise<void> {
   const id = z.string().uuid().parse(fd.get("id"));
   const mid = z.string().uuid().parse(fd.get("matrimonio_id"));
   const supabase = await supabaseSessione();
-  await supabase.from("contatto").delete().eq("id", id).eq("matrimonio_id", mid);
+  const { data: tolto } = await supabase.from("contatto").delete().eq("id", id).eq("matrimonio_id", mid).select("appuntamento_evento").maybeSingle();
+  if (tolto?.appuntamento_evento) await sincronizzaAppuntamento(id, await base(), { evento: tolto.appuntamento_evento });
   revalidatePath(`/admin/matrimoni/${mid}`);
   revalidatePath("/admin");
 }
@@ -148,8 +162,11 @@ export async function aggiornaContatto(_: Esito, fd: FormData): Promise<Esito> {
   const supabase = await supabaseSessione();
   const { error } = await supabase.from("contatto").update({
     tipo: d.tipo, canale: d.canale, avvenuto_il: istanteDaRoma(d.avvenuto_il), nota: d.nota || null, prossimo_il: d.prossimo_il || null, esito: d.esito || null,
+    appuntamento_il: d.appuntamento_il && d.esito !== "negativo" ? istanteDaRoma(d.appuntamento_il) : null,
   }).eq("id", id.data).eq("matrimonio_id", d.matrimonio_id);
   if (error) return { errore: error.message };
+  const avviso = await sincronizzaAppuntamento(id.data, await base());
+  if (avviso) return { errore: avviso };
   revalidatePath(`/admin/matrimoni/${d.matrimonio_id}`);
   revalidatePath("/admin");
   return { ok: true };
